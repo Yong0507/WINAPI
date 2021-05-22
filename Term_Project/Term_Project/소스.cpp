@@ -90,6 +90,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT p_rect;
     static RECT temp_rect;
 
+    // BackGround
+    static int scroll_x;
+
     // jump
     static int jumpForce;
 
@@ -119,6 +122,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         SetTimer(hWnd, 1, 100, NULL);
         SetTimer(hWnd, 2, 100, NULL);
         SetTimer(hWnd, 4, 100, NULL);
+        SetTimer(hWnd, 5, 100, NULL);
 
         for (int i = 0; i < RAW; ++i) {
             for (int j = 0; j < COLUMN; ++j) {
@@ -169,6 +173,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     m_dir[i] = -1;
             }
             break;
+            // 5번 타이머 - 배경화면 횡 스크롤
+        case 5:
+            scroll_x += 3;
+
+            if (scroll_x > Window_Size_X)
+                scroll_x = 0;
+
         }
 
         InvalidateRect(hWnd, NULL, false);
@@ -259,7 +270,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         SelectObject(memdc1, hBitmap1);
 
         // 1. 배경 그리기
-        bg.Draw(memdc1, 0, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
+        bg.Draw(memdc1, -Window_Size_X + scroll_x, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
+        bg.Draw(memdc1, scroll_x, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
+
 
         // 2. 발판 그리기
         for (int i = 0; i < RAW; ++i) {
