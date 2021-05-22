@@ -90,8 +90,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT p_rect;
     static RECT temp_rect;
 
-    // BackGround
+    // 충돌 시점
+    static bool mb_isCollide;
+    static int mb_collide_x;
+    static int mb_collide_y;
+
+    // BackGround for Scroll 
     static int scroll_x;
+
+    
 
     // jump
     static int jumpForce;
@@ -121,6 +128,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         SetTimer(hWnd, 1, 100, NULL);
         SetTimer(hWnd, 2, 100, NULL);
+        SetTimer(hWnd, 3, 100, NULL);
         SetTimer(hWnd, 4, 100, NULL);
         SetTimer(hWnd, 5, 100, NULL);
 
@@ -156,7 +164,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case 3:
             for (int i = 0; i < bullet_count; ++i) {
                 b_x[i] += (20 * b_dir[i]);
+
+                // 총알 RECT 범위 설정
+                b_rect[i].left = b_x[i] + 10;
+                b_rect[i].right = b_x[i] + 26;
+                b_rect[i].top = b_y[i];
+                b_rect[i].bottom = b_y[i] + 16;
             }
+
+
+            //  총알 <-> 몬스터 충돌처리
+            for (int i = 0; i < MONSTER_AMOUNT; ++i) {
+                for (int j = 0; j < BULLET_AMOUNT; ++j) {
+                    if (CollisionHelper(m_rect[i], b_rect[j]))
+                    {
+                        mb_isCollide = true;
+                        mb_collide_x = b_x[i];
+                        mb_collide_y = b_y[i];
+
+                        m_x[i] = -100;
+                        m_y[i] = -100;
+                        b_x[j] = -100;
+                        b_y[j] = -100;
+                    }
+                }
+            }
+
             break;
 
             // 4번 타이머 - Monster 움직임
@@ -171,6 +204,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
                 if (m_x[i] > 900)
                     m_dir[i] = -1;
+
+                // 몬스터 RECT 범위 설정
+                m_rect[i].left = m_x[i];
+                m_rect[i].right = m_x[i] + 44;
+                m_rect[i].top = m_y[i];
+                m_rect[i].bottom = m_y[i] + 42;
             }
             break;
             // 5번 타이머 - 배경화면 횡 스크롤
@@ -179,7 +218,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             if (scroll_x > Window_Size_X)
                 scroll_x = 0;
-
+            break;
         }
 
         InvalidateRect(hWnd, NULL, false);
@@ -229,7 +268,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case VK_SPACE:
             p_anim = 0;
             p_state = PLAYER::ATTACK;
-            SetTimer(hWnd, 3, 100, NULL);
+            is_bullet = true;
+
             // 스페이스 누르는 순간 플레이어가 어느 방향을 바라보는지 판단하고 플레이어보다 좀 더 앞선 위치에 총알을 그린다
             if (p_dir == P_DIR_LEFT) {
                 b_x[bullet_count] = p_x - 15;
@@ -241,18 +281,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 b_dir[bullet_count] = 1;
 
             }
-
             b_y[bullet_count] = p_y + 15;
 
-            is_bullet = true;
-
-            if (bullet_count > BULLET_AMOUNT)
-                bullet_count = 0;
-
+            // 총알은 최대 20발
             bullet_count++;
 
-            break;
+            if (bullet_count >= BULLET_AMOUNT)
+                bullet_count = 0;
 
+            break;
         }
 
         InvalidateRect(hWnd, NULL, false);
@@ -309,12 +346,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             p_imageCount = 11;
             player = frog_idle;
             player.Draw(memdc1, p_x, p_y, 32, 32, p_anim, p_dir, 32, 32);
+
+            // 플레이어 RECT 범위 설정
+            p_rect.left = p_x;
+            p_rect.right = p_x + 32;
+            p_rect.top = p_y;
+            p_rect.bottom = p_y + 32;
             break;
+
         case PLAYER::MOVE:
             p_imageCount = 12;
             player = frog_move;
             player.Draw(memdc1, p_x, p_y, 32, 32, p_anim, p_dir, 32, 32);
+            
+            // 플레이어 RECT 범위 설정
+            p_rect.left = p_x;
+            p_rect.right = p_x + 32;
+            p_rect.top = p_y;
+            p_rect.bottom = p_y + 32;
             break;
+            
         case PLAYER::JUMP:
             player = frog_jump;
             player.Draw(memdc1, p_x, p_y, 32, 32, 0, p_dir, 32, 32);
@@ -337,56 +388,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
             for (int i = 0; i < bullet_count; ++i) {
                 bullet.Draw(memdc1, b_x[i] + 10, b_y[i], 16, 16, 0, 0, 16, 16);
-
             }
         }
 
-        // 6. 충돌처리를 위한 RECT 범위 설정
+        // 6. 충돌된 시점에 해야하는 일 - effect 잠깐 나왔다 사라지게 하기
 
-        // 6-1. 총알 rect 범위 설정
-        for (int i = 0; i < bullet_count; ++i) {
-            b_rect[i].left = b_x[i] + 10;
-            b_rect[i].right = b_x[i] + 26;
-            b_rect[i].top = b_y[i];
-            b_rect[i].bottom = b_y[i] + 16;
-        }
-
-        // 6-2. 몬스터 rect 범위 설정
-        for (int i = 0; i < MONSTER_AMOUNT; ++i) {
-            m_rect[i].left = m_x[i];
-            m_rect[i].right = m_x[i] + 44;
-            m_rect[i].top = m_y[i];
-            m_rect[i].bottom = m_y[i] + 42;
-        }
-
-        // 6-3. 플레이어 rect 범위 설정
-        p_rect.left = p_x;
-        p_rect.right = p_x + 32;
-        p_rect.top = p_y;
-        p_rect.bottom = p_y + 32;
-
-
-        // 7. 충돌처리
-
-        // 7-1. 총알 <-> 몬스터 충돌처리
-        for (int i = 0; i < MONSTER_AMOUNT; ++i) {
-            for (int j = 0; j < BULLET_AMOUNT; ++j) {
-                if (CollisionHelper(m_rect[i], b_rect[j]))
-                {
-                    effect.Draw(memdc1, m_x[i], m_y[i], 65, 65, 0, 0, 65, 65);
-
-                    m_x[i] = -100;
-                    m_y[i] = -100;
-                    b_x[j] = -100;
-                    b_y[j] = -100;
-                }
-            }
+        if (mb_isCollide) 
+        {
+            effect.Draw(memdc1, mb_collide_x, mb_collide_y, 65, 65, 0, 0, 65, 65);
+            mb_isCollide = false;
         }
 
 
 
-
-        // RECT 테스트
+        //// RECT 테스트
 
         //for (int i = 0; i < bullet_count; ++i) {
         //    Rectangle(memdc1, b_rect[i].left, b_rect[i].top, b_rect[i].right, b_rect[i].bottom);
