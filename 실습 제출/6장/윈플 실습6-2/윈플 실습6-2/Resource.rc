@@ -1,0 +1,150 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 한국어(대한민국) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+#pragma code_page(949)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG1 DIALOGEX 0, 0, 261, 278
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "xxxxx"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "7",IDC_NUM7,18,54,48,24
+    PUSHBUTTON      "8",IDC_NUM8,72,54,48,24
+    PUSHBUTTON      "9",IDC_NUM9,126,54,48,24
+    PUSHBUTTON      "/",IDC_BUTTON_1,192,54,48,24
+    PUSHBUTTON      "4",IDC_NUM4,18,84,48,24
+    PUSHBUTTON      "5",IDC_NUM5,72,84,48,24
+    PUSHBUTTON      "6",IDC_NUM6,126,84,48,24
+    PUSHBUTTON      "*",IDC_BUTTON_2,192,84,48,24
+    PUSHBUTTON      "1",IDC_NUM1,18,114,48,24
+    PUSHBUTTON      "2",IDC_NUM2,72,114,48,24
+    PUSHBUTTON      "3",IDC_NUM3,126,114,48,24
+    PUSHBUTTON      "-",IDC_BUTTON_3,192,114,48,24
+    PUSHBUTTON      "0",IDC_NUM0,72,144,48,24
+    PUSHBUTTON      "+",IDC_BUTTON_4,192,144,48,24
+    PUSHBUTTON      "R",IDC_BUTTON_R,18,180,48,24
+    PUSHBUTTON      "CE",IDC_BUTTON_CE,72,180,48,24
+    PUSHBUTTON      "C",IDC_BUTTON_C,126,180,48,24
+    PUSHBUTTON      "=",IDC_BUTTON20,126,144,48,24
+    PUSHBUTTON      "ROOT",IDC_BUTTON_ROOT,18,210,48,24
+    PUSHBUTTON      "*10",IDC_BUTTON_10,72,210,48,24
+    PUSHBUTTON      "BackSpace",IDC_BUTTON_Back,126,210,48,24
+    PUSHBUTTON      "Exit",IDC_BUTTON_Exit,192,210,48,24
+    EDITTEXT        IDC_EDIT1,26,15,206,23,ES_RIGHT | ES_AUTOHSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_DIALOG1, DIALOG
+    BEGIN
+        LEFTMARGIN, 16
+        RIGHTMARGIN, 245
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 271
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_DIALOG1 AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    100, 100, 0, 0,
+    0, 0, 0, 0
+END
+
+#endif    // 한국어(대한민국) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
