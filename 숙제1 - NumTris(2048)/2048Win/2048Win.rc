@@ -1,0 +1,99 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 한국어(대한민국) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
+LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
+#pragma code_page(949)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BITMAP1             BITMAP                  "resource\\NUM_2.bmp"
+
+IDB_BITMAP2             BITMAP                  "resource\\NUM_4.bmp"
+
+IDB_BITMAP3             BITMAP                  "resource\\NUM_8.bmp"
+
+IDB_BITMAP4             BITMAP                  "resource\\NUM_16.bmp"
+
+IDB_BITMAP5             BITMAP                  "resource\\NUM_32.bmp"
+
+IDB_BITMAP6             BITMAP                  "resource\\NUM_64.bmp"
+
+IDB_BITMAP7             BITMAP                  "resource\\NUM_128.bmp"
+
+IDB_BITMAP8             BITMAP                  "resource\\NUM_256.bmp"
+
+IDB_BITMAP9             BITMAP                  "resource\\NUM_512.bmp"
+
+IDB_BITMAP10            BITMAP                  "resource\\NUM_1024.bmp"
+
+IDB_BITMAP11            BITMAP                  "resource\\NUM_2048.bmp"
+
+IDB_BITMAP12            BITMAP                  "resource\\Tile.bmp"
+
+IDB_BITMAP13            BITMAP                  "resource\\Back_Wall.bmp"
+
+IDB_BITMAP14            BITMAP                  "resource\\Box.bmp"
+
+IDB_BITMAP15            BITMAP                  "resource\\NUM_4096.bmp"
+
+IDB_BITMAP16            BITMAP                  "resource\\NUM_8192.bmp"
+
+#endif    // 한국어(대한민국) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
