@@ -26,11 +26,11 @@ static CImage bullet;
 // Effect
 static CImage effect;
 
+// Magma
+static CImage magma;
+
 // Width and Height
 
 static int bg_width;
 static int bg_height;
-
-static int wall_width;
-static int wall_height;
 

@@ -8,11 +8,9 @@
 #include <string.h>
 
 #include "Image.h"
-#include "Wall.h"
+#include "Map.h"
 #include "State.h"
 #include "Define.h"
-
-
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
@@ -95,6 +93,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static int mb_collide_x;
     static int mb_collide_y;
 
+    static RECT collide_rect;
+
     // BackGround for Scroll 
     static int scroll_x;
 
@@ -111,11 +111,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         LoadImage();
 
-        p_x = 500;
-        p_y = 500;
-        m_x[0] = 300;
+        p_x = 10;
+        p_y = 700;
+        m_x[0] = 200;
         m_x[1] = 300 + 44 * 1;
-        m_x[2] = 300 + 44 * 2;
+        m_x[2] = 400 + 44 * 2;
 
         for (int i = 0; i < MONSTER_AMOUNT; ++i) {
             m_y[i] = 350;
@@ -128,16 +128,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         SetTimer(hWnd, 1, 100, NULL);
         SetTimer(hWnd, 2, 100, NULL);
-        SetTimer(hWnd, 3, 100, NULL);
         SetTimer(hWnd, 4, 100, NULL);
         SetTimer(hWnd, 5, 100, NULL);
 
         for (int i = 0; i < RAW; ++i) {
             for (int j = 0; j < COLUMN; ++j) {
-                Board[i][j].left = 0 + i * BLOCK_SIZE;
-                Board[i][j].right = 30 + i * BLOCK_SIZE;
-                Board[i][j].top = 0 + j * BLOCK_SIZE;
-                Board[i][j].bottom = 30 + j * BLOCK_SIZE;
+                Board[i][j].left = 0 + j* BLOCK_SIZE;
+                Board[i][j].right = 50 + j * BLOCK_SIZE;
+                Board[i][j].top = 0 + i * BLOCK_SIZE;
+                Board[i][j].bottom = 50 + i * BLOCK_SIZE;
             }
         }
 
@@ -151,6 +150,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             p_anim += P_IMAGE_SIZE;
             if (p_anim == P_IMAGE_SIZE * (p_imageCount - 1))
                 p_anim = 0;
+
+            //for (int i = 0; i < RAW; ++i) {
+            //    for (int j = 0; j < COLUMN; ++j) {
+            //        if (Map[i][j] == WALL)
+            //        {
+            //            if (p_x < Board[i][j].left || p_x > Board[i][j].right)
+            //                p_x++;
+            //        }
+            //        else
+            //        {
+
+            //        }
+            //    }
+            //}
+
+
             break;
 
             // 2번 타이머 - Monster 애니메이션
@@ -172,52 +187,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 b_rect[i].bottom = b_y[i] + 16;
             }
 
-
-            //  총알 <-> 몬스터 충돌처리
-            for (int i = 0; i < MONSTER_AMOUNT; ++i) {
-                for (int j = 0; j < BULLET_AMOUNT; ++j) {
-                    if (CollisionHelper(m_rect[i], b_rect[j]))
-                    {
-                        mb_isCollide = true;
-                        mb_collide_x = b_x[i];
-                        mb_collide_y = b_y[i];
-
-                        m_x[i] = -100;
-                        m_y[i] = -100;
-                        b_x[j] = -100;
-                        b_y[j] = -100;
-                    }
-                }
-            }
-
             break;
 
             // 4번 타이머 - Monster 움직임
         case 4:
             for (int i = 0; i < MONSTER_AMOUNT; ++i) {
-                m_x[i] += 10 * m_dir[i];
-                if (m_x[i] == -100)
-                    m_dir[i] = 0;
-                if (m_x[i] < 0) {
-                    //m_x[0] = 10;
+
+                if (m_x[i] < 0)
                     m_dir[i] = 1;
-                }
-                if (m_x[i] > 900)
+                else if (m_x[i] > 900)
                     m_dir[i] = -1;
+
+                m_x[i] += 20 * m_dir[i];
 
                 // 몬스터 RECT 범위 설정
                 m_rect[i].left = m_x[i];
                 m_rect[i].right = m_x[i] + 44;
                 m_rect[i].top = m_y[i];
                 m_rect[i].bottom = m_y[i] + 42;
+
+                //  총알 <-> 몬스터 충돌처리
+                for (int j = 0; j < BULLET_AMOUNT; ++j) {
+                    if (CollisionHelper(b_rect[j], m_rect[i]))
+                    {
+                        mb_isCollide = true;
+                        mb_collide_x = m_x[i];
+                        mb_collide_y = m_y[i];
+
+                        m_x[i] = -100;
+                        m_y[i] = -100;
+                        b_x[j] = -100;
+                        b_y[j] = -100;
+                    }
+                }            
             }
             break;
+
             // 5번 타이머 - 배경화면 횡 스크롤
         case 5:
-            scroll_x += 3;
+            scroll_x += 7;
 
             if (scroll_x > Window_Size_X)
                 scroll_x = 0;
+            break;
+            // 6번 타이머 - JUMP
+        case 6:
+            jumpForce++;
+            if (jumpForce > 40)
+                jumpForce -= 4;
             break;
         }
 
@@ -228,8 +245,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         {
         case 'a':
         case 'A':
-            p_state = PLAYER::JUMP;
+            p_anim = 0;
+            p_state = PLAYER::ATTACK;
+            SetTimer(hWnd, 3, 100, NULL);
+
+            is_bullet = true;
+
+            // 스페이스 누르는 순간 플레이어가 어느 방향을 바라보는지 판단하고 플레이어보다 좀 더 앞선 위치에 총알을 그린다
+            if (p_dir == P_DIR_LEFT) {
+                b_x[bullet_count] = p_x - 15;
+                b_dir[bullet_count] = -1;
+            }
+
+            if (p_dir == P_DIR_RIGHT) {
+                b_x[bullet_count] = p_x + 15;
+                b_dir[bullet_count] = 1;
+
+            }
+            b_y[bullet_count] = p_y + 15;
+
+            // 총알은 최대 20발
+            bullet_count++;
+
+            if (bullet_count >= BULLET_AMOUNT)
+                bullet_count = 0;
+
             break;
+
         case 'q':
         case 'Q':
             exit(1);
@@ -264,36 +306,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             p_state = PLAYER::MOVE;
             break;
-
         case VK_SPACE:
-            p_anim = 0;
-            p_state = PLAYER::ATTACK;
-            is_bullet = true;
-
-            // 스페이스 누르는 순간 플레이어가 어느 방향을 바라보는지 판단하고 플레이어보다 좀 더 앞선 위치에 총알을 그린다
-            if (p_dir == P_DIR_LEFT) {
-                b_x[bullet_count] = p_x - 15;
-                b_dir[bullet_count] = -1;
-            }
-
-            if (p_dir == P_DIR_RIGHT) {
-                b_x[bullet_count] = p_x + 15;
-                b_dir[bullet_count] = 1;
-
-            }
-            b_y[bullet_count] = p_y + 15;
-
-            // 총알은 최대 20발
-            bullet_count++;
-
-            if (bullet_count >= BULLET_AMOUNT)
-                bullet_count = 0;
-
+            SetTimer(hWnd, 6, 30, NULL);
+            p_state = PLAYER::JUMP;
             break;
         }
 
         InvalidateRect(hWnd, NULL, false);
         break;
+
     case WM_KEYUP:
         p_state = PLAYER::IDLE;
         break;
@@ -314,9 +335,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         // 2. 발판 그리기
         for (int i = 0; i < RAW; ++i) {
             for (int j = 0; j < COLUMN; ++j) {
-                if (Check[i][j] == WALL)
+                if (Map[i][j] == WALL)
                 {
-                    wall.Draw(memdc1, Board[i][j].left, Board[i][j].top, wall_width, wall_height);
+                    wall.Draw(memdc1, Board[i][j].left, Board[i][j].top, 50, 50);
+                }
+
+                if (Map[i][j] == MAGMA)
+                {
+                    magma.Draw(memdc1, Board[i][j].left, Board[i][j].top ,50, 50);
                 }
             }
         }
@@ -327,9 +353,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case MONSTER::IDLE:
             m_imageCount = 11;
             monster = monster_idle;
-            monster.Draw(memdc1, m_x[0], m_y[0], 44, 42, m_anim, 0, 44, 42);
-            monster.Draw(memdc1, m_x[1], m_y[1], 44, 42, m_anim, 0, 44, 42);
-            monster.Draw(memdc1, m_x[2], m_y[2], 44, 42, m_anim, 0, 44, 42);
+            for (int i = 0; i < 3; ++i) {
+                monster.Draw(memdc1, m_x[i], m_y[i], 44, 42, m_anim, 0, 44, 42);
+
+            }
+            //monster.Draw(memdc1, m_x[0], m_y[0], 44, 42, m_anim, 0, 44, 42);
+            //monster.Draw(memdc1, m_x[1], m_y[1], 44, 42, m_anim, 0, 44, 42);
+            //monster.Draw(memdc1, m_x[2], m_y[2], 44, 42, m_anim, 0, 44, 42);
             break;
         case MONSTER::DEAD:
             //monster = monster_idle;
@@ -368,7 +398,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             
         case PLAYER::JUMP:
             player = frog_jump;
-            player.Draw(memdc1, p_x, p_y, 32, 32, 0, p_dir, 32, 32);
+            player.Draw(memdc1, p_x, p_y - jumpForce, 32, 32, 0, p_dir, 32, 32);
             break;
         case PLAYER::FALL:
             player = frog_fall;
@@ -391,12 +421,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
         }
 
-        // 6. 충돌된 시점에 해야하는 일 - effect 잠깐 나왔다 사라지게 하기
+        // 6. 충돌된 시점에 해야하는 일 - effect 
 
         if (mb_isCollide) 
         {
             effect.Draw(memdc1, mb_collide_x, mb_collide_y, 65, 65, 0, 0, 65, 65);
-            mb_isCollide = false;
+           // mb_isCollide = false;
         }
 
 
@@ -423,6 +453,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
 
     case WM_DESTROY:
+        KillTimer(hWnd, 1);
+        KillTimer(hWnd, 2);
+        KillTimer(hWnd, 3);
+        KillTimer(hWnd, 4);
+        KillTimer(hWnd, 5);
+        KillTimer(hWnd, 6);
+        KillTimer(hWnd, 7);
         PostQuitMessage(0);
         break;
     }
@@ -436,8 +473,6 @@ void LoadImage()
     bg_height = bg.GetHeight();
 
     wall.Load(L"wall.png");
-    wall_width = wall.GetWidth();
-    wall_height = wall.GetHeight();
 
     monster_idle.Load(L"monster_idle.png");
     monster_dead.Load(L"monster_dead.png");
@@ -451,6 +486,8 @@ void LoadImage()
     bullet.Load(L"bullet.png");
 
     effect.Load(L"effect.png");
+
+    magma.Load(L"magma.jpg");
 }
 
 bool CollisionHelper(RECT r1, RECT r2)

@@ -145,7 +145,7 @@
     <ClInclude Include="Define.h" />
     <ClInclude Include="Image.h" />
     <ClInclude Include="State.h" />
-    <ClInclude Include="Wall.h" />
+    <ClInclude Include="Map.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
