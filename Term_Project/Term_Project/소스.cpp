@@ -86,7 +86,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT m_rect[MONSTER_AMOUNT];
     static RECT b_rect[BULLET_AMOUNT];
     static RECT p_rect;
-    static RECT temp_rect;
+    static RECT w_rect[100];
+    static int w_rect_count = 0;
 
     // 충돌 시점
     static bool mb_isCollide;
@@ -140,6 +141,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
         }
 
+        for (int i = 0; i < RAW; ++i) {
+            for (int j = 0; j < COLUMN; ++j) {
+                if (Map[i][j] == WALL)
+                {
+                    w_rect[w_rect_count].left = Board[i][j].left;
+                    w_rect[w_rect_count].right = Board[i][j].right;
+                    w_rect[w_rect_count].top = Board[i][j].top;
+                    w_rect[w_rect_count].bottom = Board[i][j].bottom;
+
+                    w_rect_count++;
+                }
+            }
+        }
+
+
         break;
 
     case WM_TIMER:
@@ -151,19 +167,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (p_anim == P_IMAGE_SIZE * (p_imageCount - 1))
                 p_anim = 0;
 
-            //for (int i = 0; i < RAW; ++i) {
-            //    for (int j = 0; j < COLUMN; ++j) {
-            //        if (Map[i][j] == WALL)
-            //        {
-            //            if (p_x < Board[i][j].left || p_x > Board[i][j].right)
-            //                p_x++;
-            //        }
-            //        else
-            //        {
-
-            //        }
-            //    }
-            //}
+            p_y++;
+            for (int i = 0; i < w_rect_count; ++i) {
+                if (CollisionHelper(w_rect[i], p_rect)) 
+                {
+                    p_y--;
+                }
+                
+            }
 
 
             break;
@@ -295,14 +306,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case VK_LEFT:
             p_anim = 0; // p_anim을 초기화 해주지 않으면 좌,우 변경 시 애니메이션이 어긋나게 됨
             p_dir = P_DIR_LEFT;
-            p_x -= 3;
+            p_x -= 4;
 
             p_state = PLAYER::MOVE;
             break;
         case VK_RIGHT:
             p_anim = 0;
             p_dir = P_DIR_RIGHT;
-            p_x += 3;
+            p_x += 4;
 
             p_state = PLAYER::MOVE;
             break;
@@ -324,7 +335,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hWnd, &ps);
 
         memdc1 = CreateCompatibleDC(hdc);
-        hBitmap1 = CreateCompatibleBitmap(hdc, Window_Size_X, Window_Size_Y);
+        hBitmap1 = CreateCompatibleBitmap(hdc, 5000, Window_Size_Y);
         SelectObject(memdc1, hBitmap1);
 
         // 1. 배경 그리기
@@ -431,7 +442,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
 
-        //// RECT 테스트
+        // RECT 테스트
 
         //for (int i = 0; i < bullet_count; ++i) {
         //    Rectangle(memdc1, b_rect[i].left, b_rect[i].top, b_rect[i].right, b_rect[i].bottom);
@@ -443,9 +454,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         //Rectangle(memdc1, p_rect.left, p_rect.top, p_rect.right, p_rect.bottom);
 
+        //for (int i = 0; i < w_rect_count; ++i) {
+        //    Rectangle(memdc1, w_rect[i].left, w_rect[i].top, w_rect[i].right, w_rect[i].bottom);
+        //}
 
-
-        BitBlt(hdc, 0, 0, Window_Size_X, Window_Size_Y, memdc1, 0, 0, SRCCOPY);
+        BitBlt(hdc, 0, 0, Window_Size_X, Window_Size_Y, memdc1, p_x / 2, 0, SRCCOPY);
 
         DeleteObject(SelectObject(memdc1, hBitmap1));
         DeleteDC(memdc1);
