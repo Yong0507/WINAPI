@@ -11,6 +11,7 @@
 #include "Map.h"
 #include "State.h"
 #include "Define.h"
+#include "Obstacle.h"
 
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
@@ -131,6 +132,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         SetTimer(hWnd, 2, 100, NULL);
         SetTimer(hWnd, 4, 100, NULL);
         SetTimer(hWnd, 5, 100, NULL);
+        SetTimer(hWnd, 7, 1, NULL);
+        SetTimer(hWnd, 8, 1, NULL);
+
 
         for (int i = 0; i < RAW; ++i) {
             for (int j = 0; j < COLUMN; ++j) {
@@ -154,6 +158,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
             }
         }
+
+        InitObstacle();
 
 
         break;
@@ -246,6 +252,48 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             jumpForce++;
             if (jumpForce > 40)
                 jumpForce -= 4;
+            break;
+            
+            //7번 타이머 - 가로 장애물
+        case 7:
+            obs_garo[0].pos_x -= 10;
+            if (obs_garo[0].pos_x < 0) {
+                obs_garo[0].pos_x = 950;
+                obs_garo[0].rand_num = rand() % 450;
+            }
+
+            obs_garo[1].pos_x -= 15;
+            if (obs_garo[1].pos_x < 0) {
+                obs_garo[1].pos_x = 950;
+                obs_garo[1].rand_num = 450 + rand() % 350;
+            }
+            break;
+
+            //8번 타이머 - 세로 장애물
+        case 8:
+            obs_sero[0].pos_x += 10;
+            obs_sero[0].pos_y += 10;
+            if (obs_sero[0].pos_x > 800 || obs_sero[0].pos_y > 800) {
+                obs_sero[0].pos_x = 0;
+                obs_sero[0].pos_y = 0;
+                obs_sero[0].rand_num = rand() % 400;
+            }
+
+            obs_sero[1].pos_x += 15;
+            obs_sero[1].pos_y += 15;
+            if (obs_sero[1].pos_x > 800 || obs_sero[1].pos_y > 800) {
+                obs_sero[1].pos_x = 0;
+                obs_sero[1].pos_y = 0;
+                obs_sero[1].rand_num = 450 + rand() % 300;
+            }
+
+            obs_sero[2].pos_x += 8;
+            obs_sero[2].pos_y += 8;
+            if (obs_sero[2].pos_x > 800 || obs_sero[2].pos_y > 800) {
+                obs_sero[2].pos_x = 0;
+                obs_sero[2].pos_y = 0;
+                obs_sero[2].rand_num = rand() % 400;
+            }            
             break;
         }
 
@@ -432,7 +480,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             }
         }
 
-        // 6. 충돌된 시점에 해야하는 일 - effect 
+        // 6, 가로 장애물 그리기
+        for (int i = 0; i < OBS_GARO_COUNT; ++i) {
+            garo.Draw(memdc1, obs_garo[i].pos_x, obs_garo[i].pos_y + obs_garo[i].rand_num, 50, 50, 0, 0, 50, 50);
+        }
+
+        // 7. 세로 장애물 그리기
+        for (int i = 0; i < OBS_SERO_COUNT; ++i) {
+            sero.Draw(memdc1, obs_sero[i].pos_x + obs_sero[i].rand_num, obs_sero[i].pos_y, 50, 50, 0, 0, 50, 50);
+        }
+
+
+        // 8. 충돌된 시점에 해야하는 일 - effect 
 
         if (mb_isCollide) 
         {
@@ -473,6 +532,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         KillTimer(hWnd, 5);
         KillTimer(hWnd, 6);
         KillTimer(hWnd, 7);
+        KillTimer(hWnd, 8);
         PostQuitMessage(0);
         break;
     }
@@ -501,6 +561,9 @@ void LoadImage()
     effect.Load(L"effect.png");
 
     magma.Load(L"magma.jpg");
+
+    garo.Load(L"garo.png");
+    sero.Load(L"sero.png");
 }
 
 bool CollisionHelper(RECT r1, RECT r2)

@@ -29,8 +29,13 @@ static CImage effect;
 // Magma
 static CImage magma;
 
-// Width and Height
+// 가로 발사
+static CImage garo;
 
+// 세로 발사
+static CImage sero;
+
+// Width and Height
 static int bg_width;
 static int bg_height;
 
