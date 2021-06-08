@@ -90,6 +90,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT w_rect[100];
     static int w_rect_count = 0;
 
+    static RECT obs_g_rect[OBS_GARO_COUNT];
+    static RECT obs_s_rect[OBS_SERO_COUNT];
+
+
+
     // 충돌 시점
     static bool mb_isCollide;
     static int mb_collide_x;
@@ -100,7 +105,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     // BackGround for Scroll 
     static int scroll_x;
 
-    
+
 
     // jump
     static int jumpForce;
@@ -128,17 +133,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         p_state = PLAYER::IDLE;
         m_state = MONSTER::IDLE;
 
+
         SetTimer(hWnd, 1, 100, NULL);
         SetTimer(hWnd, 2, 100, NULL);
         SetTimer(hWnd, 4, 100, NULL);
         SetTimer(hWnd, 5, 100, NULL);
-        SetTimer(hWnd, 7, 1, NULL);
-        SetTimer(hWnd, 8, 1, NULL);
+        SetTimer(hWnd, 7, 15, NULL);
+        SetTimer(hWnd, 8, 15, NULL);
 
 
         for (int i = 0; i < RAW; ++i) {
             for (int j = 0; j < COLUMN; ++j) {
-                Board[i][j].left = 0 + j* BLOCK_SIZE;
+                Board[i][j].left = 0 + j * BLOCK_SIZE;
                 Board[i][j].right = 50 + j * BLOCK_SIZE;
                 Board[i][j].top = 0 + i * BLOCK_SIZE;
                 Board[i][j].bottom = 50 + i * BLOCK_SIZE;
@@ -175,11 +181,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             p_y++;
             for (int i = 0; i < w_rect_count; ++i) {
-                if (CollisionHelper(w_rect[i], p_rect)) 
+                if (CollisionHelper(w_rect[i], p_rect))
                 {
                     p_y--;
                 }
-                
+
             }
 
 
@@ -236,7 +242,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                         b_x[j] = -100;
                         b_y[j] = -100;
                     }
-                }            
+                }
             }
             break;
 
@@ -253,7 +259,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             if (jumpForce > 40)
                 jumpForce -= 4;
             break;
-            
+
             //7번 타이머 - 가로 장애물
         case 7:
             obs_garo[0].pos_x -= 10;
@@ -267,6 +273,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 obs_garo[1].pos_x = 950;
                 obs_garo[1].rand_num = 450 + rand() % 350;
             }
+
+
+            for (int i = 0; i < OBS_GARO_COUNT; ++i) {
+                obs_g_rect[i].left = obs_garo[i].pos_x;
+                obs_g_rect[i].top = obs_garo[i].pos_y + obs_garo[i].rand_num;
+                obs_g_rect[i].right = obs_garo[i].pos_x + 50;
+                obs_g_rect[i].bottom = obs_garo[i].pos_y + 50 + obs_garo[i].rand_num;
+                if (CollisionHelper(obs_g_rect[i], p_rect)) {
+                    exit(0);
+                }
+            }
+
             break;
 
             //8번 타이머 - 세로 장애물
@@ -293,7 +311,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 obs_sero[2].pos_x = 0;
                 obs_sero[2].pos_y = 0;
                 obs_sero[2].rand_num = rand() % 400;
-            }            
+            }
             break;
         }
 
@@ -401,7 +419,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                 if (Map[i][j] == MAGMA)
                 {
-                    magma.Draw(memdc1, Board[i][j].left, Board[i][j].top ,50, 50);
+                    magma.Draw(memdc1, Board[i][j].left, Board[i][j].top, 50, 50);
                 }
             }
         }
@@ -447,14 +465,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             p_imageCount = 12;
             player = frog_move;
             player.Draw(memdc1, p_x, p_y, 32, 32, p_anim, p_dir, 32, 32);
-            
+
             // 플레이어 RECT 범위 설정
             p_rect.left = p_x;
             p_rect.right = p_x + 32;
             p_rect.top = p_y;
             p_rect.bottom = p_y + 32;
             break;
-            
+
         case PLAYER::JUMP:
             player = frog_jump;
             player.Draw(memdc1, p_x, p_y - jumpForce, 32, 32, 0, p_dir, 32, 32);
@@ -485,6 +503,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             garo.Draw(memdc1, obs_garo[i].pos_x, obs_garo[i].pos_y + obs_garo[i].rand_num, 50, 50, 0, 0, 50, 50);
         }
 
+
         // 7. 세로 장애물 그리기
         for (int i = 0; i < OBS_SERO_COUNT; ++i) {
             sero.Draw(memdc1, obs_sero[i].pos_x + obs_sero[i].rand_num, obs_sero[i].pos_y, 50, 50, 0, 0, 50, 50);
@@ -493,10 +512,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         // 8. 충돌된 시점에 해야하는 일 - effect 
 
-        if (mb_isCollide) 
+        if (mb_isCollide)
         {
             effect.Draw(memdc1, mb_collide_x, mb_collide_y, 65, 65, 0, 0, 65, 65);
-           // mb_isCollide = false;
+            // mb_isCollide = false;
         }
 
 
