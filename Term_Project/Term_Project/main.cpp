@@ -87,31 +87,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT m_rect[MONSTER_AMOUNT];
     static RECT b_rect[BULLET_AMOUNT];
     static RECT p_rect;
-    static RECT w_rect[100];
+    static RECT w_rect[500];
     static int w_rect_count = 0;
 
     static RECT obs_g_rect[OBS_GARO_COUNT];
     static RECT obs_s_rect[OBS_SERO_COUNT];
-
-
 
     // 충돌 시점
     static bool mb_isCollide;
     static int mb_collide_x;
     static int mb_collide_y;
 
-    static RECT collide_rect;
+    static bool p_isCollide;
+    static int p_collide_x;
+    static int p_collide_y;
 
     // BackGround for Scroll 
     static int scroll_x;
 
-
-
     // jump
     static int jumpForce;
-
-    // direction
-    static int dir;
 
     switch (uMsg) {
 
@@ -134,12 +129,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         m_state = MONSTER::IDLE;
 
 
-        SetTimer(hWnd, 1, 100, NULL);
-        SetTimer(hWnd, 2, 100, NULL);
-        SetTimer(hWnd, 4, 100, NULL);
-        SetTimer(hWnd, 5, 100, NULL);
-        SetTimer(hWnd, 7, 15, NULL);
-        SetTimer(hWnd, 8, 15, NULL);
+        SetTimer(hWnd, 1, 40, NULL);
 
 
         for (int i = 0; i < RAW; ++i) {
@@ -173,33 +163,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_TIMER:
         switch (wParam) {
 
-            // 1번 타이머 - Player 애니메이션
         case 1:
-            p_anim += P_IMAGE_SIZE;
-            if (p_anim == P_IMAGE_SIZE * (p_imageCount - 1))
-                p_anim = 0;
-
-            p_y++;
-            for (int i = 0; i < w_rect_count; ++i) {
-                if (CollisionHelper(w_rect[i], p_rect))
-                {
-                    p_y--;
-                }
-
+            // 0번 기능 - 키보드 입력에 따른 기능
+            if (GetAsyncKeyState(VK_LEFT) & 0x8000)
+            {
+                p_state = PLAYER::MOVE;
+                p_dir = P_DIR_LEFT;      
+                p_x -= 5;
+            }
+            if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
+            {
+                p_state = PLAYER::MOVE;
+                p_dir = P_DIR_RIGHT;
+                p_x += 5;
             }
 
+            if (GetAsyncKeyState(VK_UP) & 0x8000)
+            {
+                p_state = PLAYER::MOVE;
+                p_y -= 5;
+            }
 
-            break;
+            if (GetAsyncKeyState(VK_DOWN) & 0x8000)
+            {
+                p_state = PLAYER::MOVE;
+                p_y += 5;
+            }
 
-            // 2번 타이머 - Monster 애니메이션
-        case 2:
+            if (GetAsyncKeyState(VK_SPACE) & 0x8000) 
+            {
+                p_state = PLAYER::JUMP;
+                jumpForce++;
+                if (jumpForce > 40)
+                    jumpForce -= 4;
+            }
+
+            // 1번 기능 - Player 애니메이션
+            p_anim += P_IMAGE_SIZE;
+            if (p_anim >= P_IMAGE_SIZE * (p_imageCount - 1))
+                p_anim = 0;
+
+            // 2번 기능 - Monster 애니메이션
             m_anim += M_IMAGE_SIZE;
             if (m_anim == M_IMAGE_SIZE * (m_imageCount - 1))
                 m_anim = 0;
-            break;
 
-            // 3번 타이머 - Bullet 애니메이션
-        case 3:
+            // 3번 기능 - Bullet 애니메이션
             for (int i = 0; i < bullet_count; ++i) {
                 b_x[i] += (20 * b_dir[i]);
 
@@ -210,10 +219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 b_rect[i].bottom = b_y[i] + 16;
             }
 
-            break;
-
-            // 4번 타이머 - Monster 움직임
-        case 4:
+            // 4번 기능 - Monster 움직임
             for (int i = 0; i < MONSTER_AMOUNT; ++i) {
 
                 if (m_x[i] < 0)
@@ -221,7 +227,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 else if (m_x[i] > 900)
                     m_dir[i] = -1;
 
-                m_x[i] += 20 * m_dir[i];
+                m_x[i] += 5 * m_dir[i];
 
                 // 몬스터 RECT 범위 설정
                 m_rect[i].left = m_x[i];
@@ -239,29 +245,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                         m_x[i] = -100;
                         m_y[i] = -100;
-                        b_x[j] = -100;
-                        b_y[j] = -100;
+                        b_x[j] = -300;
+                        b_y[j] = -300;
                     }
                 }
             }
-            break;
 
-            // 5번 타이머 - 배경화면 횡 스크롤
-        case 5:
-            scroll_x += 7;
+            // 5번 기능 - 배경화면 횡 스크롤
+            scroll_x += 5;
 
             if (scroll_x > Window_Size_X)
                 scroll_x = 0;
-            break;
-            // 6번 타이머 - JUMP
-        case 6:
-            jumpForce++;
-            if (jumpForce > 40)
-                jumpForce -= 4;
-            break;
 
-            //7번 타이머 - 가로 장애물
-        case 7:
+            //6번 기능 - 가로 장애물
             obs_garo[0].pos_x -= 10;
             if (obs_garo[0].pos_x < 0) {
                 obs_garo[0].pos_x = 950;
@@ -274,21 +270,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 obs_garo[1].rand_num = 450 + rand() % 350;
             }
 
-
             for (int i = 0; i < OBS_GARO_COUNT; ++i) {
                 obs_g_rect[i].left = obs_garo[i].pos_x;
-                obs_g_rect[i].top = obs_garo[i].pos_y + obs_garo[i].rand_num;
                 obs_g_rect[i].right = obs_garo[i].pos_x + 50;
-                obs_g_rect[i].bottom = obs_garo[i].pos_y + 50 + obs_garo[i].rand_num;
+                obs_g_rect[i].top = obs_garo[i].pos_y + obs_garo[i].rand_num;
+                obs_g_rect[i].bottom = obs_garo[i].pos_y + obs_garo[i].rand_num + 50;
                 if (CollisionHelper(obs_g_rect[i], p_rect)) {
-                    exit(0);
+                    p_isCollide = true;
+                    p_collide_x = p_x;
+                    p_collide_y = p_y;
+
+                    obs_garo[i].pos_x = -100;
+                    obs_garo[i].pos_y = -100;
                 }
             }
 
-            break;
-
-            //8번 타이머 - 세로 장애물
-        case 8:
+            //7번 기능 - 세로 장애물
             obs_sero[0].pos_x += 10;
             obs_sero[0].pos_y += 10;
             if (obs_sero[0].pos_x > 800 || obs_sero[0].pos_y > 800) {
@@ -312,11 +309,29 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 obs_sero[2].pos_y = 0;
                 obs_sero[2].rand_num = rand() % 400;
             }
+
+            for (int i = 0; i < OBS_SERO_COUNT; ++i) {
+                obs_s_rect[i].left = obs_sero[i].pos_x + obs_sero[i].rand_num;
+                obs_s_rect[i].right = obs_sero[i].pos_x + obs_sero[i].rand_num + 50;
+                obs_s_rect[i].top = obs_sero[i].pos_y;
+                obs_s_rect[i].bottom = obs_sero[i].pos_y + 50;
+                if (CollisionHelper(obs_s_rect[i], p_rect)) {
+                    p_isCollide = true;
+                    p_collide_x = p_x;
+                    p_collide_y = p_y;
+
+                    obs_sero[i].pos_x = -100;
+                    obs_sero[i].pos_y = -100;
+                }
+            }
+
+
             break;
         }
 
         InvalidateRect(hWnd, NULL, false);
         break;
+
     case WM_CHAR:
         switch (wParam)
         {
@@ -324,7 +339,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case 'A':
             p_anim = 0;
             p_state = PLAYER::ATTACK;
-            SetTimer(hWnd, 3, 100, NULL);
 
             is_bullet = true;
 
@@ -356,43 +370,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-    case WM_KEYDOWN:
-        switch (wParam)
-        {
-        case VK_UP:
-            p_y -= 3;
-
-            p_state = PLAYER::MOVE;
-            break;
-        case VK_DOWN:
-            p_y += 3;
-
-            p_state = PLAYER::MOVE;
-            break;
-        case VK_LEFT:
-            p_anim = 0; // p_anim을 초기화 해주지 않으면 좌,우 변경 시 애니메이션이 어긋나게 됨
-            p_dir = P_DIR_LEFT;
-            p_x -= 4;
-
-            p_state = PLAYER::MOVE;
-            break;
-        case VK_RIGHT:
-            p_anim = 0;
-            p_dir = P_DIR_RIGHT;
-            p_x += 4;
-
-            p_state = PLAYER::MOVE;
-            break;
-        case VK_SPACE:
-            SetTimer(hWnd, 6, 30, NULL);
-            p_state = PLAYER::JUMP;
-            break;
-        }
-
-        InvalidateRect(hWnd, NULL, false);
-        break;
-
-    case WM_KEYUP:
+    case WM_KEYUP:;
         p_state = PLAYER::IDLE;
         break;
 
@@ -405,8 +383,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         SelectObject(memdc1, hBitmap1);
 
         // 1. 배경 그리기
-        bg.Draw(memdc1, -Window_Size_X + scroll_x, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
-        bg.Draw(memdc1, scroll_x, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
+        bg.Draw(memdc1, -Window_Size_X + scroll_x + p_x / 2, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
+        bg.Draw(memdc1, scroll_x + p_x / 2, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
 
 
         // 2. 발판 그리기
@@ -434,15 +412,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 monster.Draw(memdc1, m_x[i], m_y[i], 44, 42, m_anim, 0, 44, 42);
 
             }
-            //monster.Draw(memdc1, m_x[0], m_y[0], 44, 42, m_anim, 0, 44, 42);
-            //monster.Draw(memdc1, m_x[1], m_y[1], 44, 42, m_anim, 0, 44, 42);
-            //monster.Draw(memdc1, m_x[2], m_y[2], 44, 42, m_anim, 0, 44, 42);
             break;
         case MONSTER::DEAD:
-            //monster = monster_idle;
-            //monster.Draw(memdc1, m_x[0], m_y[0], 44, 42, m_anim, 0, 44, 42);           
-            //monster.Draw(memdc1, m_x[1], m_y[1], 44, 42, m_anim, 0, 44, 42);
-            //monster.Draw(memdc1, m_x[2], m_y[2], 44, 42, m_anim, 0, 44, 42);
             break;
         }
 
@@ -515,12 +486,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         if (mb_isCollide)
         {
             effect.Draw(memdc1, mb_collide_x, mb_collide_y, 65, 65, 0, 0, 65, 65);
-            // mb_isCollide = false;
+            mb_isCollide = false;
         }
 
+        if (p_isCollide)
+        {
+            effect.Draw(memdc1, p_collide_x, p_collide_y, 65, 65, 0, 0, 65, 65);
+            p_isCollide = false;
+        }
 
-
-        // RECT 테스트
+        // --- RECT 테스트 ---
 
         //for (int i = 0; i < bullet_count; ++i) {
         //    Rectangle(memdc1, b_rect[i].left, b_rect[i].top, b_rect[i].right, b_rect[i].bottom);
@@ -530,11 +505,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         //    Rectangle(memdc1, m_rect[i].left, m_rect[i].top, m_rect[i].right, m_rect[i].bottom);
         //}
 
+        //for (int i = 0; i < OBS_SERO_COUNT; ++i) {
+        //    Rectangle(memdc1, obs_s_rect[i].left, obs_s_rect[i].top, obs_s_rect[i].right, obs_s_rect[i].bottom);
+        //}
+
+        //for (int i = 0; i < OBS_GARO_COUNT; ++i) {
+        //    Rectangle(memdc1, obs_g_rect[i].left, obs_g_rect[i].top, obs_g_rect[i].right, obs_g_rect[i].bottom);
+        //}
+
         //Rectangle(memdc1, p_rect.left, p_rect.top, p_rect.right, p_rect.bottom);
 
-        //for (int i = 0; i < w_rect_count; ++i) {
+        //for (int i = 0; i < w_rect_count; ++i) {            
         //    Rectangle(memdc1, w_rect[i].left, w_rect[i].top, w_rect[i].right, w_rect[i].bottom);
         //}
+
+        // --- RECT 테스트 ---
+
 
         BitBlt(hdc, 0, 0, Window_Size_X, Window_Size_Y, memdc1, p_x / 2, 0, SRCCOPY);
 
@@ -594,3 +580,4 @@ bool CollisionHelper(RECT r1, RECT r2)
 
     return true;
 }
+
