@@ -63,9 +63,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
 void LoadImage();
 bool CollisionHelper(RECT, RECT);
-float MoveTime();
-
-
+void GaroObstacle();
+void SeroObstacle();
+void InitMonster(int m_x[MONSTER_AMOUNT], int m_y[MONSTER_AMOUNT]);
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -84,6 +84,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     // Monster 위치, 애니메이션, 크기, 칸수 등등
     static int m_x[MONSTER_AMOUNT];
+    static int temp_m_x[MONSTER_AMOUNT];
     static int m_y[MONSTER_AMOUNT];
     static int m_anim;
     static int m_imageCount;
@@ -100,7 +101,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT m_rect[MONSTER_AMOUNT];
     static RECT b_rect[BULLET_AMOUNT];
     static RECT p_rect;
-    static RECT w_rect[500];
+    static RECT w_rect[802];
 
     static int w_rect_count = 0;
 
@@ -108,9 +109,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT obs_s_rect[OBS_SERO_COUNT];
 
     // 충돌 시점
-    static bool mb_isCollide;
-    static int mb_collide_x;
-    static int mb_collide_y;
+    static bool mp_isCollide;
+    static int mp_collide_x;
+    static int mp_collide_y;
 
     static bool p_isCollide;
     static int p_collide_x;
@@ -119,40 +120,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     // BackGround for Scroll 
     static int scroll_x;
 
-
     // 물리
-    float gravity = 900.f;    
-    static float fallingSpeed = 0;
-    static float fallingDistance;
-
-    float jumpForce = 1000.f;
-    static float jumpDistance;
-
-    //상준 물리
     static float dx, dy;
     static float accX, accY;
     static float velX, velY;
-    static float  PLAYER_ACC = 1;
-    static float  PLAYER_FRICTION = -0.2;
-    static float  PLAYER_GRAVITY = 0.5;
+    static float  PLAYER_ACC = 1.f;
+    static float  PLAYER_FRICTION = -0.2f;
+    static float  PLAYER_GRAVITY = 0.5f;
 
     static bool isRanding = false;
     static bool isJump = false;
     static int jumpCount = 0;
 
+    // Heart
+    static int heart_count = 20;
+
     switch (uMsg) {
 
     case WM_CREATE:
+
         LoadImage();
 
-        p_x = 50;
-        p_y = 700;
-        m_x[0] = 200;
-        m_x[1] = 300 + 44 * 1;
-        m_x[2] = 400 + 44 * 2;
+        p_x = 230;
+        p_y = 650;
+
+        InitMonster(m_x, m_y);
 
         for (int i = 0; i < MONSTER_AMOUNT; ++i) {
-            m_y[i] = 350;
+            temp_m_x[i] = m_x[i];
         }
 
         player = frog_idle;
@@ -199,22 +194,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
             accY = PLAYER_GRAVITY;
             accX = dx;
-
             velY += accY;
-
-            //   velocity = 내가 주는 힘을 여기서 계산때린다 고 
-            //   Player.velocity.x y   =>> 
-
-
-
-            fallingDistance = fallingSpeed * 0.016f;
-            jumpDistance = (jumpForce - fallingDistance) * 0.016f;
-
-
-
-
-
-
 
             // 0번 기능 - 키보드 입력에 따른 기능
             if (GetAsyncKeyState(VK_LEFT) & 0x8000)
@@ -223,6 +203,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 p_state = PLAYER::MOVE;
                 p_dir = P_DIR_LEFT;
                 p_x -= (p_speed * 0.016f);
+                if (p_x < 200)
+                    p_x = 200;
             }
 
             if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
@@ -232,28 +214,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 p_dir = P_DIR_RIGHT;
                 p_x += (p_speed * 0.016f);
             }
-
-
-            if (p_y > 710)
-            {
-                p_locate = PLAYER::GROUND;
-            }
-
-            switch (p_locate)
-            {
-            case PLAYER::GROUND:
-                accY = 0;
-                velY = 0;
-                p_y = 710;
-                break;
-            case PLAYER::FALLING:
-
-                break;
-            case PLAYER::OBSTACLE:
-                break;
-            }
-
-
 
             if (!isJump) {
                 for (int i = 0; i < w_rect_count; ++i) {
@@ -306,6 +266,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             isJump = false;
             p_y += velY + accY * 0.016f;
 
+            // 떨어지면 처음부터
+            if (p_y > 1000) {
+                p_x = 230;
+                p_y = 650;
+            }
+
+
 
             // 1번 기능 - Player 애니메이션
             p_anim += P_IMAGE_SIZE;
@@ -331,12 +298,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             // 4번 기능 - Monster 움직임
             for (int i = 0; i < MONSTER_AMOUNT; ++i) {
 
-                if (m_x[i] < 0)
-                    m_dir[i] = 1;
-                else if (m_x[i] > 900)
-                    m_dir[i] = -1;
-
                 m_x[i] += 5 * m_dir[i];
+
+                if (temp_m_x[i] - m_x[i] > 100) {
+                    m_dir[i] = 1;
+                }
+                else if (m_x[i] - temp_m_x[i] > 100) {
+                    m_dir[i] = -1;
+                }
 
                 // 몬스터 RECT 범위 설정
                 m_rect[i].left = m_x[i];
@@ -344,13 +313,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 m_rect[i].top = m_y[i];
                 m_rect[i].bottom = m_y[i] + 42;
 
-                //  총알 <-> 몬스터 충돌처리
+                // 플레이어 <-> 몬스터 충돌처리
+                if (CollisionHelper(m_rect[i], p_rect))
+                {
+                    mp_isCollide = true;
+                    mp_collide_x = m_x[i];
+                    mp_collide_y = m_y[i];
+
+                    heart_count--;
+                    if (heart_count == 0)
+                    {
+                        p_x = 230;
+                        p_y = 650;
+                        heart_count = 3;
+                    }
+                }
+
+
+                // 플레이어 총알 <-> 몬스터 충돌처리
                 for (int j = 0; j < BULLET_AMOUNT; ++j) {
                     if (CollisionHelper(b_rect[j], m_rect[i]))
                     {
-                        mb_isCollide = true;
-                        mb_collide_x = m_x[i];
-                        mb_collide_y = m_y[i];
+                        mp_isCollide = true;
+                        mp_collide_x = m_x[i];
+                        mp_collide_y = m_y[i];
 
                         m_x[i] = -100;
                         m_y[i] = -100;
@@ -367,19 +353,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 scroll_x = 0;
 
             //6번 기능 - 가로 장애물
-            obs_garo[0].pos_x -= 10;
-            if (obs_garo[0].pos_x < 0) {
-                obs_garo[0].pos_x = 950;
-                obs_garo[0].rand_num = rand() % 450;
-            }
+            GaroObstacle();
 
-            obs_garo[1].pos_x -= 15;
-            if (obs_garo[1].pos_x < 0) {
-                obs_garo[1].pos_x = 950;
-                obs_garo[1].rand_num = 450 + rand() % 350;
-            }
-
-               for (int i = 0; i < OBS_GARO_COUNT; ++i) {
+            for (int i = 0; i < OBS_GARO_COUNT; ++i) {
                 obs_g_rect[i].left = obs_garo[i].pos_x;
                 obs_g_rect[i].right = obs_garo[i].pos_x + 50;
                 obs_g_rect[i].top = obs_garo[i].pos_y + obs_garo[i].rand_num;
@@ -389,35 +365,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     p_collide_x = p_x;
                     p_collide_y = p_y;
 
+                    heart_count--;
+                    if (heart_count == 0)
+                    {
+                        p_x = 230;
+                        p_y = 650;
+                        heart_count = 3;
+                    }
+
                     obs_garo[i].pos_x = -100;
                     obs_garo[i].pos_y = -100;
                 }
             }
 
             //7번 기능 - 세로 장애물
-            obs_sero[0].pos_x += 10;
-            obs_sero[0].pos_y += 10;
-            if (obs_sero[0].pos_x > 800 || obs_sero[0].pos_y > 800) {
-                obs_sero[0].pos_x = 0;
-                obs_sero[0].pos_y = 0;
-                obs_sero[0].rand_num = rand() % 400;
-            }
-
-            obs_sero[1].pos_x += 15;
-            obs_sero[1].pos_y += 15;
-            if (obs_sero[1].pos_x > 800 || obs_sero[1].pos_y > 800) {
-                obs_sero[1].pos_x = 0;
-                obs_sero[1].pos_y = 0;
-                obs_sero[1].rand_num = 450 + rand() % 300;
-            }
-
-            obs_sero[2].pos_x += 8;
-            obs_sero[2].pos_y += 8;
-            if (obs_sero[2].pos_x > 800 || obs_sero[2].pos_y > 800) {
-                obs_sero[2].pos_x = 0;
-                obs_sero[2].pos_y = 0;
-                obs_sero[2].rand_num = rand() % 400;
-            }
+            SeroObstacle();
 
             for (int i = 0; i < OBS_SERO_COUNT; ++i) {
                 obs_s_rect[i].left = obs_sero[i].pos_x + obs_sero[i].rand_num;
@@ -429,15 +391,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     p_collide_x = p_x;
                     p_collide_y = p_y;
 
+                    heart_count--;
+                    if (heart_count == 0) 
+                    {
+                        p_x = 230;
+                        p_y = 650;
+                        heart_count = 3;
+                    }
+
                     obs_sero[i].pos_x = -100;
                     obs_sero[i].pos_y = -100;
                 }
             }
-
-            
             break;
         }
-
         
 
         InvalidateRect(hWnd, NULL, false);
@@ -487,17 +454,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case VK_SPACE:
             if (jumpCount < 2) {
                 isJump = true;
-                p_locate = PLAYER::FALLING;
                 isRanding = false;
-                velY = -10.5;
+                velY = -11.5f;
                 jumpCount++;
                 break;
             }
-
+        case VK_SHIFT:
+            p_speed = 600.f;
+            break;
         }
         break;
     case WM_KEYUP:
         p_state = PLAYER::IDLE;
+        p_speed = 300.f;
         break;
 
     case WM_PAINT:
@@ -505,12 +474,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hWnd, &ps);
 
         memdc1 = CreateCompatibleDC(hdc);
-        hBitmap1 = CreateCompatibleBitmap(hdc, 6000, Window_Size_Y);
+        hBitmap1 = CreateCompatibleBitmap(hdc, 10000, Window_Size_Y);
         SelectObject(memdc1, hBitmap1);
 
         // 1. 배경 그리기
-        bg.Draw(memdc1, -Window_Size_X + scroll_x + p_x / 2, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
-        bg.Draw(memdc1, scroll_x + p_x / 2, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
+        bg.Draw(memdc1, -Window_Size_X + scroll_x + p_x - 200, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
+        bg.Draw(memdc1, scroll_x + p_x - 200, 0, Window_Size_X, Window_Size_Y, 0, 0, bg_width, bg_height);
 
 
         // 2. 발판 그리기
@@ -534,10 +503,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         case MONSTER::IDLE:
             m_imageCount = 11;
             monster = monster_idle;
-            for (int i = 0; i < 3; ++i) {
+            for (int i = 0; i < MONSTER_AMOUNT; ++i) {
                 monster.Draw(memdc1, m_x[i], m_y[i], 44, 42, m_anim, 0, 44, 42);
-
             }
+
             break;
         case MONSTER::DEAD:
             break;
@@ -608,11 +577,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 
         // 8. 충돌된 시점에 해야하는 일 - effect 
+        
 
-        if (mb_isCollide)
+        if (mp_isCollide)
         {
-            effect.Draw(memdc1, mb_collide_x, mb_collide_y, 65, 65, 0, 0, 65, 65);
-            mb_isCollide = false;
+            effect.Draw(memdc1, mp_collide_x, mp_collide_y, 65, 65, 0, 0, 65, 65);
+            mp_isCollide = false;
         }
 
         if (p_isCollide)
@@ -620,6 +590,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             effect.Draw(memdc1, p_collide_x, p_collide_y, 65, 65, 0, 0, 65, 65);
             p_isCollide = false;
         }
+
+        // 9. Heart 그리기
+        for (int i = 0; i < heart_count; ++i) {
+            My_heart.Draw(memdc1, 30 + 45 * i + p_x - 200, 20, 45, 45, 0, 0, 45, 45);
+        }
+
 
         // --- RECT 테스트 ---
 
@@ -648,7 +624,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         // --- RECT 테스트 ---
 
 
-        BitBlt(hdc, 0, 0, Window_Size_X, Window_Size_Y, memdc1, p_x / 2, 0, SRCCOPY);
+        BitBlt(hdc, 0, 0, Window_Size_X, Window_Size_Y, memdc1, p_x - 200, 0, SRCCOPY);
 
         DeleteObject(SelectObject(memdc1, hBitmap1));
         DeleteDC(memdc1);
@@ -657,13 +633,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     case WM_DESTROY:
         KillTimer(hWnd, 1);
-        KillTimer(hWnd, 2);
-        KillTimer(hWnd, 3);
-        KillTimer(hWnd, 4);
-        KillTimer(hWnd, 5);
-        KillTimer(hWnd, 6);
-        KillTimer(hWnd, 7);
-        KillTimer(hWnd, 8);
         PostQuitMessage(0);
         break;
     }
@@ -695,6 +664,9 @@ void LoadImage()
 
     garo.Load(L"garo.png");
     sero.Load(L"sero.png");
+
+    heart.Load(L"heart.png");
+    My_heart.Load(L"heart.png");
 }
 
 bool CollisionHelper(RECT r1, RECT r2)
@@ -707,20 +679,627 @@ bool CollisionHelper(RECT r1, RECT r2)
     return true;
 }
 
-float MoveTime()
+void GaroObstacle()
 {
-    LARGE_INTEGER tTime;
-    QueryPerformanceCounter(&tTime);
+    obs_garo[0].pos_x -= 8;
+    if (obs_garo[0].pos_x < 0) {
+        obs_garo[0].pos_x = 950;
+        obs_garo[0].rand_num = rand() % 450;
+    }
 
-    g_fDeltaTime = (tTime.QuadPart - g_tTime.QuadPart) /
-        (float)g_tSecond.QuadPart;
+    obs_garo[1].pos_x -= 10;
+    if (obs_garo[1].pos_x < 0) {
+        obs_garo[1].pos_x = 950;
+        obs_garo[1].rand_num = 450 + rand() % 350;
+    }
 
-    g_tTime = tTime;
+    obs_garo[2].pos_x -= 8;
+    if (obs_garo[2].pos_x < 1000) {
+        obs_garo[2].pos_x = 1000 + 950;
+        obs_garo[2].rand_num = rand() % 450;
+    }
 
-    // 플레이어 초당 이동속도 : 300
-    float fSpeed = 300 * g_fDeltaTime;
+    obs_garo[3].pos_x -= 10;
+    if (obs_garo[3].pos_x < 1000) {
+        obs_garo[3].pos_x = 1000 + 950;
+        obs_garo[3].rand_num = 450 + rand() % 350;
+    }
 
-    float fMovdistancePerTik = fSpeed * g_fDeltaTime;
+    obs_garo[4].pos_x -= 8;
+    if (obs_garo[4].pos_x < 2000) {
+        obs_garo[4].pos_x = 2000 + 950;
+        obs_garo[4].rand_num = rand() % 450;
+    }
 
-    return fSpeed;
+    obs_garo[5].pos_x -= 10;
+    if (obs_garo[5].pos_x < 2000) {
+        obs_garo[5].pos_x = 2000 + 950;
+        obs_garo[5].rand_num = 450 + rand() % 350;
+    }
+
+    obs_garo[6].pos_x -= 8;
+    if (obs_garo[6].pos_x < 3000) {
+        obs_garo[6].pos_x = 3000 + 950;
+        obs_garo[6].rand_num = rand() % 450;
+    }
+
+    obs_garo[7].pos_x -= 10;
+    if (obs_garo[7].pos_x < 3000) {
+        obs_garo[7].pos_x = 3000 + 950;
+        obs_garo[7].rand_num = 450 + rand() % 350;
+    }
+
+    obs_garo[8].pos_x -= 8;
+    if (obs_garo[8].pos_x < 4000) {
+        obs_garo[8].pos_x = 4000 + 950;
+        obs_garo[8].rand_num = rand() % 450;
+    }
+
+    obs_garo[9].pos_x -= 10;
+    if (obs_garo[9].pos_x < 4000) {
+        obs_garo[9].pos_x = 4000 + 950;
+        obs_garo[9].rand_num = 450 + rand() % 350;
+    }
+
+    obs_garo[10].pos_x -= 8;
+    if (obs_garo[10].pos_x < 5000) {
+        obs_garo[10].pos_x = 5000 + 950;
+        obs_garo[10].rand_num = rand() % 450;
+    }
+
+    obs_garo[11].pos_x -= 10;
+    if (obs_garo[11].pos_x < 5000) {
+        obs_garo[11].pos_x = 5000 + 950;
+        obs_garo[11].rand_num = 450 + rand() % 350;
+    }
+
+    obs_garo[12].pos_x -= 8;
+    if (obs_garo[12].pos_x < 6000) {
+        obs_garo[12].pos_x = 6000 + 950;
+        obs_garo[12].rand_num = rand() % 450;
+    }
+
+    obs_garo[13].pos_x -= 10;
+    if (obs_garo[13].pos_x < 6000) {
+        obs_garo[13].pos_x = 6000 + 950;
+        obs_garo[13].rand_num = 450 + rand() % 350;
+    }
+
+    obs_garo[14].pos_x -= 8;
+    if (obs_garo[14].pos_x < 7000) {
+        obs_garo[14].pos_x = 7000 + 950;
+        obs_garo[14].rand_num = rand() % 450;
+    }
+
+    obs_garo[15].pos_x -= 10;
+    if (obs_garo[15].pos_x < 7000) {
+        obs_garo[15].pos_x = 7000 + 950;
+        obs_garo[15].rand_num = 450 + rand() % 350;
+    }
+
+    obs_garo[16].pos_x -= 8;
+    if (obs_garo[16].pos_x < 8000) {
+        obs_garo[16].pos_x = 8000 + 950;
+        obs_garo[16].rand_num = rand() % 450;
+    }
+
+    obs_garo[17].pos_x -= 10;
+    if (obs_garo[17].pos_x < 9000) {
+        obs_garo[17].pos_x = 9000 + 950;
+        obs_garo[17].rand_num = 450 + rand() % 350;
+    }
+
+    obs_garo[18].pos_x -= 8;
+    if (obs_garo[18].pos_x < 10000) {
+        obs_garo[18].pos_x = 10000 + 950;
+        obs_garo[18].rand_num = rand() % 450;
+    }
+
+    obs_garo[19].pos_x -= 10;
+    if (obs_garo[19].pos_x < 10000) {
+        obs_garo[19].pos_x = 10000 + 950;
+        obs_garo[19].rand_num = 450 + rand() % 350;
+    }
+}
+
+void SeroObstacle()
+{
+    obs_sero[0].pos_x += 5;
+    obs_sero[0].pos_y += 5;
+    if (obs_sero[0].pos_x > 800 || obs_sero[0].pos_y > 800) {
+        obs_sero[0].pos_x = 0;
+        obs_sero[0].pos_y = 0;
+        obs_sero[0].rand_num = rand() % 400;
+    }
+
+    obs_sero[1].pos_x += 3;
+    obs_sero[1].pos_y += 3;
+    if (obs_sero[1].pos_x > 800 || obs_sero[1].pos_y > 800) {
+        obs_sero[1].pos_x = 0;
+        obs_sero[1].pos_y = 0;
+        obs_sero[1].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[2].pos_x += 7;
+    obs_sero[2].pos_y += 7;
+    if (obs_sero[2].pos_x > 800 || obs_sero[2].pos_y > 800) {
+        obs_sero[2].pos_x = 0;
+        obs_sero[2].pos_y = 0;
+        obs_sero[2].rand_num = rand() % 400;
+    }
+
+    obs_sero[3].pos_x += 5;
+    obs_sero[3].pos_y += 5;
+    if (obs_sero[3].pos_x > 1800 || obs_sero[3].pos_y > 800) {
+        obs_sero[3].pos_x = 800;
+        obs_sero[3].pos_y = 0;
+        obs_sero[3].rand_num = rand() % 400;
+    }
+
+    obs_sero[4].pos_x += 3;
+    obs_sero[4].pos_y += 3;
+    if (obs_sero[4].pos_x > 1800 || obs_sero[4].pos_y > 800) {
+        obs_sero[4].pos_x = 800;
+        obs_sero[4].pos_y = 0;
+        obs_sero[4].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[5].pos_x += 7;
+    obs_sero[5].pos_y += 7;
+    if (obs_sero[5].pos_x > 1800 || obs_sero[5].pos_y > 800) {
+        obs_sero[5].pos_x = 800;
+        obs_sero[5].pos_y = 0;
+        obs_sero[5].rand_num = rand() % 400;
+    }
+
+    obs_sero[6].pos_x += 5;
+    obs_sero[6].pos_y += 5;
+    if (obs_sero[6].pos_x > 2800 || obs_sero[6].pos_y > 800) {
+        obs_sero[6].pos_x = 1600;
+        obs_sero[6].pos_y = 0;
+        obs_sero[6].rand_num = rand() % 400;
+    }
+
+    obs_sero[7].pos_x += 3;
+    obs_sero[7].pos_y += 3;
+    if (obs_sero[7].pos_x > 2800 || obs_sero[7].pos_y > 800) {
+        obs_sero[7].pos_x = 1600;
+        obs_sero[7].pos_y = 0;
+        obs_sero[7].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[8].pos_x += 7;
+    obs_sero[8].pos_y += 7;
+    if (obs_sero[8].pos_x > 3800 || obs_sero[8].pos_y > 800) {
+        obs_sero[8].pos_x = 2400;
+        obs_sero[8].pos_y = 0;
+        obs_sero[8].rand_num = rand() % 400;
+    }
+
+    obs_sero[9].pos_x += 5;
+    obs_sero[9].pos_y += 5;
+    if (obs_sero[9].pos_x > 3800 || obs_sero[9].pos_y > 800) {
+        obs_sero[9].pos_x = 2400;
+        obs_sero[9].pos_y = 0;
+        obs_sero[9].rand_num = rand() % 400;
+    }
+
+    obs_sero[10].pos_x += 3;
+    obs_sero[10].pos_y += 3;
+    if (obs_sero[10].pos_x > 3800 || obs_sero[10].pos_y > 800) {
+        obs_sero[10].pos_x = 2400;
+        obs_sero[10].pos_y = 0;
+        obs_sero[10].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[11].pos_x += 7;
+    obs_sero[11].pos_y += 7;
+    if (obs_sero[11].pos_x > 3800 || obs_sero[11].pos_y > 800) {
+        obs_sero[11].pos_x = 2400;
+        obs_sero[11].pos_y = 0;
+        obs_sero[11].rand_num = rand() % 400;
+    }
+
+    obs_sero[12].pos_x += 5;
+    obs_sero[12].pos_y += 5;
+    if (obs_sero[12].pos_x > 4800 || obs_sero[12].pos_y > 800) {
+        obs_sero[12].pos_x = 3200;
+        obs_sero[12].pos_y = 0;
+        obs_sero[12].rand_num = rand() % 400;
+    }
+
+    obs_sero[13].pos_x += 3;
+    obs_sero[13].pos_y += 3;
+    if (obs_sero[13].pos_x > 4800 || obs_sero[13].pos_y > 800) {
+        obs_sero[13].pos_x = 3200;
+        obs_sero[13].pos_y = 0;
+        obs_sero[13].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[14].pos_x += 7;
+    obs_sero[14].pos_y += 7;
+    if (obs_sero[14].pos_x > 3800 || obs_sero[14].pos_y > 800) {
+        obs_sero[14].pos_x = 3200;
+        obs_sero[14].pos_y = 0;
+        obs_sero[14].rand_num = rand() % 400;
+    }
+
+
+    obs_sero[15].pos_x += 5;
+    obs_sero[15].pos_y += 5;
+    if (obs_sero[15].pos_x > 4800 || obs_sero[15].pos_y > 800) {
+        obs_sero[15].pos_x = 4000;
+        obs_sero[15].pos_y = 0;
+        obs_sero[15].rand_num = rand() % 400;
+    }
+
+    obs_sero[16].pos_x += 3;
+    obs_sero[16].pos_y += 3;
+    if (obs_sero[16].pos_x > 4800 || obs_sero[16].pos_y > 800) {
+        obs_sero[16].pos_x = 4000;
+        obs_sero[16].pos_y = 0;
+        obs_sero[16].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[17].pos_x += 7;
+    obs_sero[17].pos_y += 7;
+    if (obs_sero[17].pos_x > 4800 || obs_sero[17].pos_y > 800) {
+        obs_sero[17].pos_x = 4000;
+        obs_sero[17].pos_y = 0;
+        obs_sero[17].rand_num = rand() % 400;
+    }
+
+    obs_sero[18].pos_x += 5;
+    obs_sero[18].pos_y += 5;
+    if (obs_sero[18].pos_x > 5800 || obs_sero[18].pos_y > 800) {
+        obs_sero[18].pos_x = 4800;
+        obs_sero[18].pos_y = 0;
+        obs_sero[18].rand_num = rand() % 400;
+    }
+
+    obs_sero[19].pos_x += 3;
+    obs_sero[19].pos_y += 3;
+    if (obs_sero[19].pos_x > 5800 || obs_sero[19].pos_y > 800) {
+        obs_sero[19].pos_x = 4800;
+        obs_sero[19].pos_y = 0;
+        obs_sero[19].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[20].pos_x += 7;
+    obs_sero[20].pos_y += 7;
+    if (obs_sero[20].pos_x > 5800 || obs_sero[20].pos_y > 800) {
+        obs_sero[20].pos_x = 4800;
+        obs_sero[20].pos_y = 0;
+        obs_sero[20].rand_num = rand() % 400;
+    }
+
+
+
+    obs_sero[21].pos_x += 5;
+    obs_sero[21].pos_y += 5;
+    if (obs_sero[21].pos_x > 6800 || obs_sero[21].pos_y > 800) {
+        obs_sero[21].pos_x = 5600;
+        obs_sero[21].pos_y = 0;
+        obs_sero[21].rand_num = rand() % 400;
+    }
+
+    obs_sero[22].pos_x += 3;
+    obs_sero[22].pos_y += 3;
+    if (obs_sero[22].pos_x > 6800 || obs_sero[22].pos_y > 800) {
+        obs_sero[22].pos_x = 5600;
+        obs_sero[22].pos_y = 0;
+        obs_sero[22].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[23].pos_x += 7;
+    obs_sero[23].pos_y += 7;
+    if (obs_sero[23].pos_x > 6800 || obs_sero[23].pos_y > 800) {
+        obs_sero[23].pos_x = 5600;
+        obs_sero[23].pos_y = 0;
+        obs_sero[23].rand_num = rand() % 400;
+    }
+
+    obs_sero[24].pos_x += 5;
+    obs_sero[24].pos_y += 5;
+    if (obs_sero[24].pos_x > 7800 || obs_sero[24].pos_y > 800) {
+        obs_sero[24].pos_x = 6400;
+        obs_sero[24].pos_y = 0;
+        obs_sero[24].rand_num = rand() % 400;
+    }
+
+    obs_sero[25].pos_x += 3;
+    obs_sero[25].pos_y += 3;
+    if (obs_sero[25].pos_x > 7800 || obs_sero[25].pos_y > 800) {
+        obs_sero[25].pos_x = 6400;
+        obs_sero[25].pos_y = 0;
+        obs_sero[25].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[26].pos_x += 7;
+    obs_sero[26].pos_y += 7;
+    if (obs_sero[26].pos_x > 7800 || obs_sero[26].pos_y > 800) {
+        obs_sero[26].pos_x = 6400;
+        obs_sero[26].pos_y = 0;
+        obs_sero[26].rand_num = rand() % 400;
+    }
+
+    obs_sero[27].pos_x += 5;
+    obs_sero[27].pos_y += 5;
+    if (obs_sero[27].pos_x > 8800 || obs_sero[27].pos_y > 800) {
+        obs_sero[27].pos_x = 7200;
+        obs_sero[27].pos_y = 0;
+        obs_sero[27].rand_num = rand() % 400;
+    }
+
+    obs_sero[28].pos_x += 3;
+    obs_sero[28].pos_y += 3;
+    if (obs_sero[28].pos_x > 8800 || obs_sero[28].pos_y > 800) {
+        obs_sero[28].pos_x = 7200;
+        obs_sero[28].pos_y = 0;
+        obs_sero[28].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[29].pos_x += 7;
+    obs_sero[29].pos_y += 7;
+    if (obs_sero[29].pos_x > 8800 || obs_sero[26].pos_y > 800) {
+        obs_sero[29].pos_x = 7200;
+        obs_sero[29].pos_y = 0;
+        obs_sero[29].rand_num = rand() % 400;
+    }
+
+    obs_sero[30].pos_x += 5;
+    obs_sero[30].pos_y += 5;
+    if (obs_sero[30].pos_x > 9800 || obs_sero[30].pos_y > 800) {
+        obs_sero[30].pos_x = 8000;
+        obs_sero[30].pos_y = 0;
+        obs_sero[30].rand_num = rand() % 400;
+    }
+
+    obs_sero[31].pos_x += 3;
+    obs_sero[31].pos_y += 3;
+    if (obs_sero[31].pos_x > 9800 || obs_sero[31].pos_y > 800) {
+        obs_sero[31].pos_x = 8000;
+        obs_sero[31].pos_y = 0;
+        obs_sero[31].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[32].pos_x += 7;
+    obs_sero[32].pos_y += 7;
+    if (obs_sero[32].pos_x > 9800 || obs_sero[32].pos_y > 800) {
+        obs_sero[32].pos_x = 8000;
+        obs_sero[32].pos_y = 0;
+        obs_sero[32].rand_num = rand() % 400;
+    }
+
+    obs_sero[33].pos_x += 5;
+    obs_sero[33].pos_y += 5;
+    if (obs_sero[33].pos_x > 10800 || obs_sero[33].pos_y > 800) {
+        obs_sero[33].pos_x = 8800;
+        obs_sero[33].pos_y = 0;
+        obs_sero[33].rand_num = rand() % 400;
+    }
+
+    obs_sero[34].pos_x += 3;
+    obs_sero[34].pos_y += 3;
+    if (obs_sero[34].pos_x > 10800 || obs_sero[34].pos_y > 800) {
+        obs_sero[34].pos_x = 8800;
+        obs_sero[34].pos_y = 0;
+        obs_sero[34].rand_num = 450 + rand() % 300;
+    }
+
+    obs_sero[35].pos_x += 7;
+    obs_sero[35].pos_y += 7;
+    if (obs_sero[35].pos_x > 10800 || obs_sero[35].pos_y > 800) {
+        obs_sero[35].pos_x = 8800;
+        obs_sero[35].pos_y = 0;
+        obs_sero[35].rand_num = rand() % 400;
+    }
+}
+
+void InitMonster(int m_x[MONSTER_AMOUNT], int m_y[MONSTER_AMOUNT])
+{
+    //움직일 수 있는 놈
+
+    m_x[0] = 10 * BLOCK_SIZE;
+    m_y[0] = 12 * BLOCK_SIZE;
+
+    m_x[1] = 13 * BLOCK_SIZE;
+    m_y[1] = 12 * BLOCK_SIZE;
+
+    m_x[2] = 12 * BLOCK_SIZE;
+    m_y[2] = 10 * BLOCK_SIZE;
+
+    m_x[3] = 93 * BLOCK_SIZE;
+    m_y[3] = 1 * BLOCK_SIZE;
+
+    m_x[3] = 97 * BLOCK_SIZE;
+    m_y[3] = 1 * BLOCK_SIZE;
+
+    m_x[4] = 97 * BLOCK_SIZE;
+    m_y[4] = 13 * BLOCK_SIZE;
+
+    m_x[5] = 95 * BLOCK_SIZE;
+    m_y[5] = 15 * BLOCK_SIZE;
+
+    m_x[6] = 87 * BLOCK_SIZE;
+    m_y[6] = 13 * BLOCK_SIZE;
+
+    m_x[7] = 128 * BLOCK_SIZE;
+    m_y[7] = 3 * BLOCK_SIZE;
+
+    m_x[8] = 128 * BLOCK_SIZE;
+    m_y[8] = 14 * BLOCK_SIZE;
+
+    m_x[9] = 151 * BLOCK_SIZE;
+    m_y[9] = 1 * BLOCK_SIZE;
+
+    m_x[10] = 151 * BLOCK_SIZE;
+    m_y[10] = 3 * BLOCK_SIZE;
+
+    m_x[11] = 162 * BLOCK_SIZE;
+    m_y[11] = 14 * BLOCK_SIZE;
+
+    m_x[12] = 175 * BLOCK_SIZE;
+    m_y[12] = 12 * BLOCK_SIZE;
+
+    m_x[13] = 178 * BLOCK_SIZE;
+    m_y[13] = 12 * BLOCK_SIZE;
+
+    m_x[14] = 183 * BLOCK_SIZE;
+    m_y[14] = 12 * BLOCK_SIZE;
+
+    m_x[15] = 186 * BLOCK_SIZE;
+    m_y[15] = 12 * BLOCK_SIZE;
+
+    m_x[16] = 191 * BLOCK_SIZE;
+    m_y[16] = 12 * BLOCK_SIZE;
+
+    m_x[17] = 194 * BLOCK_SIZE;
+    m_y[17] = 12 * BLOCK_SIZE;
+
+
+    // 못 움직이는 놈
+    m_x[18] = 28 * BLOCK_SIZE;
+    m_y[18] = 5 * BLOCK_SIZE;
+
+    m_x[19] = 24 * BLOCK_SIZE;
+    m_y[19] = 14 * BLOCK_SIZE;
+
+    m_x[20] = 37 * BLOCK_SIZE;
+    m_y[20] = 10 * BLOCK_SIZE;
+
+    m_x[21] = 38 * BLOCK_SIZE;
+    m_y[21] = 4 * BLOCK_SIZE;
+
+    m_x[22] = 43 * BLOCK_SIZE;
+    m_y[22] = 4 * BLOCK_SIZE;
+
+    m_x[23] = 47 * BLOCK_SIZE;
+    m_y[23] = 4 * BLOCK_SIZE;
+
+    m_x[24] = 52 * BLOCK_SIZE;
+    m_y[24] = 4 * BLOCK_SIZE;
+
+    m_x[25] = 58 * BLOCK_SIZE;
+    m_y[25] = 2 * BLOCK_SIZE;
+
+    m_x[26] = 68 * BLOCK_SIZE;
+    m_y[26] = 2 * BLOCK_SIZE;
+
+    m_x[27] = 77 * BLOCK_SIZE;
+    m_y[27] = 0 * BLOCK_SIZE;
+
+    m_x[28] = 79 * BLOCK_SIZE;
+    m_y[28] = 1 * BLOCK_SIZE;
+
+    m_x[29] = 83 * BLOCK_SIZE;
+    m_y[29] = 1 * BLOCK_SIZE;
+
+    m_x[30] = 88 * BLOCK_SIZE;
+    m_y[30] = 1 * BLOCK_SIZE;
+
+    m_x[31] = 42 * BLOCK_SIZE;
+    m_y[31] = 8 * BLOCK_SIZE;
+
+    m_x[32] = 48 * BLOCK_SIZE;
+    m_y[32] = 8 * BLOCK_SIZE;
+
+    m_x[33] = 50 * BLOCK_SIZE;
+    m_y[33] = 8 * BLOCK_SIZE;
+
+    m_x[34] = 53 * BLOCK_SIZE;
+    m_y[34] = 8 * BLOCK_SIZE;
+
+    m_x[35] = 60 * BLOCK_SIZE;
+    m_y[35] = 8 * BLOCK_SIZE;
+
+    m_x[36] = 72 * BLOCK_SIZE;
+    m_y[36] = 8 * BLOCK_SIZE;
+
+    m_x[37] = 79 * BLOCK_SIZE;
+    m_y[37] = 9 * BLOCK_SIZE;
+
+    m_x[38] = 83 * BLOCK_SIZE;
+    m_y[38] = 9 * BLOCK_SIZE;
+
+    m_x[39] = 90 * BLOCK_SIZE;
+    m_y[39] = 11 * BLOCK_SIZE;
+
+    m_x[40] = 55 * BLOCK_SIZE;
+    m_y[40] = 13 * BLOCK_SIZE;
+
+    m_x[41] = 56 * BLOCK_SIZE;
+    m_y[41] = 12 * BLOCK_SIZE;
+
+    m_x[42] = 59 * BLOCK_SIZE;
+    m_y[42] = 12 * BLOCK_SIZE;
+
+    m_x[43] = 61 * BLOCK_SIZE;
+    m_y[43] = 12 * BLOCK_SIZE;
+
+    m_x[44] = 63 * BLOCK_SIZE;
+    m_y[44] = 12 * BLOCK_SIZE;
+
+    m_x[45] = 70 * BLOCK_SIZE;
+    m_y[45] = 11 * BLOCK_SIZE;
+
+    m_x[46] = 73 * BLOCK_SIZE;
+    m_y[46] = 10 * BLOCK_SIZE;
+
+    m_x[47] = 79 * BLOCK_SIZE;
+    m_y[47] = 13 * BLOCK_SIZE;
+
+    m_x[48] = 80 * BLOCK_SIZE;
+    m_y[48] = 13 * BLOCK_SIZE;
+
+    m_x[49] = 81 * BLOCK_SIZE;
+    m_y[49] = 13 * BLOCK_SIZE;
+
+    m_x[50] = 104 * BLOCK_SIZE;
+    m_y[50] = 8 * BLOCK_SIZE;
+
+    m_x[51] = 110 * BLOCK_SIZE;
+    m_y[51] = 11 * BLOCK_SIZE;
+
+    m_x[52] = 112 * BLOCK_SIZE;
+    m_y[52] = 10 * BLOCK_SIZE;
+
+    m_x[53] = 116 * BLOCK_SIZE;
+    m_y[53] = 10 * BLOCK_SIZE;
+
+    m_x[54] = 116 * BLOCK_SIZE;
+    m_y[54] = 7 * BLOCK_SIZE;
+
+    m_x[55] = 121 * BLOCK_SIZE;
+    m_y[55] = 6 * BLOCK_SIZE;
+
+    m_x[56] = 121 * BLOCK_SIZE;
+    m_y[56] = 12 * BLOCK_SIZE;
+
+    m_x[57] = 136 * BLOCK_SIZE;
+    m_y[57] = 4 * BLOCK_SIZE;
+
+    m_x[58] = 136 * BLOCK_SIZE;
+    m_y[58] = 8 * BLOCK_SIZE;
+
+    m_x[59] = 136 * BLOCK_SIZE;
+    m_y[59] = 12 * BLOCK_SIZE;
+
+    m_x[60] = 138 * BLOCK_SIZE;
+    m_y[60] = 10 * BLOCK_SIZE;
+
+    m_x[61] = 140 * BLOCK_SIZE;
+    m_y[61] = 9 * BLOCK_SIZE;
+
+    m_x[62] = 143 * BLOCK_SIZE;
+    m_y[62] = 16 * BLOCK_SIZE;
+
+    m_x[63] = 145 * BLOCK_SIZE;
+    m_y[63] = 1 * BLOCK_SIZE;
+
+    m_x[64] = 156 * BLOCK_SIZE;
+    m_y[64] = 14 * BLOCK_SIZE;
+
+    m_x[65] = 168 * BLOCK_SIZE;
+    m_y[65] = 12 * BLOCK_SIZE;
 }

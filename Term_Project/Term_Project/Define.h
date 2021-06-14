@@ -8,4 +8,4 @@
 #define M_IMAGE_SIZE  44
 
 #define BULLET_AMOUNT 20
-#define MONSTER_AMOUNT 3
+#define MONSTER_AMOUNT 66

@@ -35,6 +35,10 @@ static CImage garo;
 // 세로 발사
 static CImage sero;
 
+// 하트
+static CImage heart;
+static CImage My_heart;
+
 // Width and Height
 static int bg_width;
 static int bg_height;
