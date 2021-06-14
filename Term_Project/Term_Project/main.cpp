@@ -13,10 +13,17 @@
 #include "Define.h"
 #include "Obstacle.h"
 
+
 HINSTANCE g_hInst;
 LPCTSTR lpszClass = L"Window Class Name";
 LPCTSTR lpszWindowName = L"Term Project";
 LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam);
+
+// 시간을 구하기 위한 변수들
+LARGE_INTEGER g_tSecond;
+LARGE_INTEGER g_tTime;
+float         g_fDeltaTime;
+
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow)
 {
@@ -46,6 +53,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
         hInstance, NULL);
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
+
     while (GetMessage(&Message, 0, 0, 0)) {
         TranslateMessage(&Message);
         DispatchMessage(&Message);
@@ -55,6 +63,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdPa
 
 void LoadImage();
 bool CollisionHelper(RECT, RECT);
+float MoveTime();
+
+
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -64,10 +75,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     HBRUSH hBrush, oldBrush;
 
     // Player 위치, 애니메이션, 크기, 칸수 등등
-    static int p_x, p_y;
+    static float p_x, p_y;
     static int p_anim;
     static int p_dir;
     static int p_imageCount;
+    static float p_speed = 300.0f;
+    static float temp_p_y;
 
     // Monster 위치, 애니메이션, 크기, 칸수 등등
     static int m_x[MONSTER_AMOUNT];
@@ -88,6 +101,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT b_rect[BULLET_AMOUNT];
     static RECT p_rect;
     static RECT w_rect[500];
+
     static int w_rect_count = 0;
 
     static RECT obs_g_rect[OBS_GARO_COUNT];
@@ -105,15 +119,31 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     // BackGround for Scroll 
     static int scroll_x;
 
-    // jump
-    static int jumpForce;
 
+    // 물리
+    float gravity = 900.f;    
+    static float fallingSpeed = 0;
+    static float fallingDistance;
+
+    float jumpForce = 1000.f;
+    static float jumpDistance;
+
+    //상준 물리
+    static float dx, dy;
+    static float accX, accY;
+    static float velX, velY;
+    static float  PLAYER_ACC = 1;
+    static float  PLAYER_FRICTION = -0.2;
+    static float  PLAYER_GRAVITY = 0.5;
+
+    static bool isRanding = false;
+    static bool isJump = false;
     switch (uMsg) {
 
     case WM_CREATE:
         LoadImage();
 
-        p_x = 10;
+        p_x = 50;
         p_y = 700;
         m_x[0] = 200;
         m_x[1] = 300 + 44 * 1;
@@ -129,7 +159,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         m_state = MONSTER::IDLE;
 
 
-        SetTimer(hWnd, 1, 40, NULL);
+        SetTimer(hWnd, 1, 16, NULL);
 
 
         for (int i = 0; i < RAW; ++i) {
@@ -164,39 +194,116 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         switch (wParam) {
 
         case 1:
+
+            accY = PLAYER_GRAVITY;
+            accX = dx;
+
+            velY += accY;
+
+            //   velocity = 내가 주는 힘을 여기서 계산때린다 고 
+            //   Player.velocity.x y   =>> 
+
+
+
+            fallingDistance = fallingSpeed * 0.016f;
+            jumpDistance = (jumpForce - fallingDistance) * 0.016f;
+
+
+
+
+
+
+
             // 0번 기능 - 키보드 입력에 따른 기능
             if (GetAsyncKeyState(VK_LEFT) & 0x8000)
             {
+                accY = PLAYER_GRAVITY;
                 p_state = PLAYER::MOVE;
-                p_dir = P_DIR_LEFT;      
-                p_x -= 5;
+                p_dir = P_DIR_LEFT;
+                p_x -= (p_speed * 0.016f);
             }
+
             if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
             {
+                accY = PLAYER_GRAVITY;
                 p_state = PLAYER::MOVE;
                 p_dir = P_DIR_RIGHT;
-                p_x += 5;
+                p_x += (p_speed * 0.016f);
             }
 
-            if (GetAsyncKeyState(VK_UP) & 0x8000)
+
+            if (p_y > 710)
             {
-                p_state = PLAYER::MOVE;
-                p_y -= 5;
+                p_locate = PLAYER::GROUND;
             }
 
-            if (GetAsyncKeyState(VK_DOWN) & 0x8000)
+            switch (p_locate)
             {
-                p_state = PLAYER::MOVE;
-                p_y += 5;
+            case PLAYER::GROUND:
+                accY = 0;
+                velY = 0;
+                p_y = 710;
+                break;
+            case PLAYER::FALLING:
+
+                break;
+            case PLAYER::OBSTACLE:
+                break;
             }
 
-            if (GetAsyncKeyState(VK_SPACE) & 0x8000) 
-            {
-                p_state = PLAYER::JUMP;
-                jumpForce++;
-                if (jumpForce > 40)
-                    jumpForce -= 4;
+
+
+            if (!isJump) {
+                for (int i = 0; i < w_rect_count; ++i) {
+                    if (CollisionHelper(w_rect[i], p_rect)) {
+                        //위 충돌
+
+                        if (w_rect[i].bottom < p_rect.bottom)
+                        {
+                            p_y = w_rect[i].bottom + 32;
+                            accY = 0;
+                            velY = 0;
+
+                        }
+                        //아래 충돌
+                        if (w_rect[i].top > p_rect.top)
+                        {
+
+                            //velY = -100;
+                            if (isRanding) {
+                                p_y = w_rect[i].top - 32;
+                                velY = 0;
+                                accY = 0;
+
+                            }
+                            else {
+                                p_y -= 1;
+                            }
+                            isRanding = true;
+
+                            //p_locate = PLAYER::GROUND;
+                        }
+                        // 왼쪽 충돌
+
+                        if (w_rect[i].right > p_rect.right && !isRanding)
+                        {
+                            p_x -= 10;
+                        }
+                        // 오른쪽 충돌
+                        if (w_rect[i].left < p_rect.left && !isRanding)
+                        {
+                            p_x += 10;
+
+                        }
+
+
+                    }
+                }
             }
+
+            isJump = false;
+            p_y += velY + accY * 0.016f;
+
 
             // 1번 기능 - Player 애니메이션
             p_anim += P_IMAGE_SIZE;
@@ -270,7 +377,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 obs_garo[1].rand_num = 450 + rand() % 350;
             }
 
-            for (int i = 0; i < OBS_GARO_COUNT; ++i) {
+               for (int i = 0; i < OBS_GARO_COUNT; ++i) {
                 obs_g_rect[i].left = obs_garo[i].pos_x;
                 obs_g_rect[i].right = obs_garo[i].pos_x + 50;
                 obs_g_rect[i].top = obs_garo[i].pos_y + obs_garo[i].rand_num;
@@ -325,9 +432,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 }
             }
 
-
+            
             break;
         }
+
+        
 
         InvalidateRect(hWnd, NULL, false);
         break;
@@ -370,7 +479,20 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-    case WM_KEYUP:;
+    case WM_KEYDOWN:
+        switch (wParam)
+        {
+        case VK_SPACE:
+            //accY = PLAYER_GRAVITY;
+            isJump = true;
+            p_locate = PLAYER::FALLING;
+            isRanding = false;
+            velY = -10.5; 
+            break;
+
+        }
+        break;
+    case WM_KEYUP:
         p_state = PLAYER::IDLE;
         break;
 
@@ -379,7 +501,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hWnd, &ps);
 
         memdc1 = CreateCompatibleDC(hdc);
-        hBitmap1 = CreateCompatibleBitmap(hdc, 5000, Window_Size_Y);
+        hBitmap1 = CreateCompatibleBitmap(hdc, 6000, Window_Size_Y);
         SelectObject(memdc1, hBitmap1);
 
         // 1. 배경 그리기
@@ -426,8 +548,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             player.Draw(memdc1, p_x, p_y, 32, 32, p_anim, p_dir, 32, 32);
 
             // 플레이어 RECT 범위 설정
-            p_rect.left = p_x;
-            p_rect.right = p_x + 32;
+            p_rect.left = p_x + 5;
+            p_rect.right = p_x + 27;
             p_rect.top = p_y;
             p_rect.bottom = p_y + 32;
             break;
@@ -438,15 +560,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             player.Draw(memdc1, p_x, p_y, 32, 32, p_anim, p_dir, 32, 32);
 
             // 플레이어 RECT 범위 설정
-            p_rect.left = p_x;
-            p_rect.right = p_x + 32;
+            p_rect.left = p_x + 5;
+            p_rect.right = p_x + 27;
             p_rect.top = p_y;
             p_rect.bottom = p_y + 32;
             break;
 
         case PLAYER::JUMP:
             player = frog_jump;
-            player.Draw(memdc1, p_x, p_y - jumpForce, 32, 32, 0, p_dir, 32, 32);
+            player.Draw(memdc1, p_x, p_y, 32, 32, 0, p_dir, 32, 32);
             break;
         case PLAYER::FALL:
             player = frog_fall;
@@ -581,3 +703,20 @@ bool CollisionHelper(RECT r1, RECT r2)
     return true;
 }
 
+float MoveTime()
+{
+    LARGE_INTEGER tTime;
+    QueryPerformanceCounter(&tTime);
+
+    g_fDeltaTime = (tTime.QuadPart - g_tTime.QuadPart) /
+        (float)g_tSecond.QuadPart;
+
+    g_tTime = tTime;
+
+    // 플레이어 초당 이동속도 : 300
+    float fSpeed = 300 * g_fDeltaTime;
+
+    float fMovdistancePerTik = fSpeed * g_fDeltaTime;
+
+    return fSpeed;
+}

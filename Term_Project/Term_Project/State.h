@@ -8,6 +8,12 @@ namespace PLAYER
 		ATTACK,
 		DEAD
 	};
+
+	enum P_Locate {
+		GROUND,
+		OBSTACLE,
+		FALLING
+	};
 }
 
 namespace MONSTER
@@ -19,4 +25,5 @@ namespace MONSTER
 }
 
 static PLAYER::P_State p_state;
+static PLAYER::P_Locate p_locate;
 static MONSTER::M_State m_state;

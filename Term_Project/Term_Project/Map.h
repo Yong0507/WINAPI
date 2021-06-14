@@ -7,7 +7,16 @@
 static int RAW = 20;
 static int COLUMN = 40;
 
-static RECT Board[20][40];
+struct RectF {
+	float left;
+	float top;
+	float right;
+	float bottom;
+};
+
+static RectF Board[20][40];
+
+//static RECT Board[20][40];
 
 static int Map[20][40] = {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
