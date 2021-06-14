@@ -148,10 +148,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         LoadImage();
 
-        //p_x = 230;
-        //p_y = 650;
-        p_x = 9900;
-        p_y = 550;
+        p_x = 230;
+        p_y = 650;
+        //p_x = 9900;
+        //p_y = 550;
 
         InitMonster(m_x, m_y);
 
