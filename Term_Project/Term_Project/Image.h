@@ -36,8 +36,14 @@ static CImage garo;
 static CImage sero;
 
 // 하트
-static CImage heart;
 static CImage My_heart;
+
+// 포탈
+static CImage portal;
+
+// 게임 엔딩 
+static CImage FailGame;
+static CImage SuccessGame;
 
 // Width and Height
 static int bg_width;

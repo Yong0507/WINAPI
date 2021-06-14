@@ -101,7 +101,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static RECT m_rect[MONSTER_AMOUNT];
     static RECT b_rect[BULLET_AMOUNT];
     static RECT p_rect;
-    static RECT w_rect[802];
+    static RECT w_rect[820];
 
     static int w_rect_count = 0;
 
@@ -133,7 +133,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     static int jumpCount = 0;
 
     // Heart
-    static int heart_count = 20;
+    static int heart_count = 5;
+
+    // 게임 Ending 관련
+    static int dest_x = 10300;
+    static int dest_y = 600;
+    static int is_game_fail = false;
+    static int is_game_success = false;
+
 
     switch (uMsg) {
 
@@ -141,8 +148,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
         LoadImage();
 
-        p_x = 230;
-        p_y = 650;
+        //p_x = 230;
+        //p_y = 650;
+        p_x = 9900;
+        p_y = 550;
 
         InitMonster(m_x, m_y);
 
@@ -203,8 +212,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 p_state = PLAYER::MOVE;
                 p_dir = P_DIR_LEFT;
                 p_x -= (p_speed * 0.016f);
-                if (p_x < 200)
-                    p_x = 200;
             }
 
             if (GetAsyncKeyState(VK_RIGHT) & 0x8000)
@@ -266,11 +273,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             isJump = false;
             p_y += velY + accY * 0.016f;
 
-            // 떨어지면 처음부터
+            // 떨어지면 처음부터 - Fall            
             if (p_y > 1000) {
                 p_x = 230;
                 p_y = 650;
             }
+
+            // 마지막에 도달하면 - End
+            if (10300 - 52 < p_x && p_x < 10352
+                && 600 - 52 < p_y && p_y < 600 + 52)
+            {
+                is_game_success = true;
+            }
+
 
 
 
@@ -320,13 +335,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     mp_collide_x = m_x[i];
                     mp_collide_y = m_y[i];
 
-                    heart_count--;
-                    if (heart_count == 0)
-                    {
-                        p_x = 230;
-                        p_y = 650;
-                        heart_count = 3;
-                    }
+                    is_game_fail = true;                    
                 }
 
 
@@ -367,11 +376,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                     heart_count--;
                     if (heart_count == 0)
-                    {
-                        p_x = 230;
-                        p_y = 650;
-                        heart_count = 3;
-                    }
+                        is_game_fail = true;
 
                     obs_garo[i].pos_x = -100;
                     obs_garo[i].pos_y = -100;
@@ -393,11 +398,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                     heart_count--;
                     if (heart_count == 0) 
-                    {
-                        p_x = 230;
-                        p_y = 650;
-                        heart_count = 3;
-                    }
+                        is_game_fail = true;
+                    
 
                     obs_sero[i].pos_x = -100;
                     obs_sero[i].pos_y = -100;
@@ -440,6 +442,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                 bullet_count = 0;
 
             break;
+        case 'z':
+        case 'Z':
+            velY = 7.5f;
+            break;
+        case 'r':
+        case 'R':
+            p_x = 230;
+            p_y = 650;
+            heart_count = 3;
+            is_game_fail = false;
+            is_game_success = false;
+            break;
 
         case 'q':
         case 'Q':
@@ -474,7 +488,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         hdc = BeginPaint(hWnd, &ps);
 
         memdc1 = CreateCompatibleDC(hdc);
-        hBitmap1 = CreateCompatibleBitmap(hdc, 10000, Window_Size_Y);
+        hBitmap1 = CreateCompatibleBitmap(hdc, 11500, Window_Size_Y);
         SelectObject(memdc1, hBitmap1);
 
         // 1. 배경 그리기
@@ -575,10 +589,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             sero.Draw(memdc1, obs_sero[i].pos_x + obs_sero[i].rand_num, obs_sero[i].pos_y, 50, 50, 0, 0, 50, 50);
         }
 
-
-        // 8. 충돌된 시점에 해야하는 일 - effect 
-        
-
+        // 8. 충돌된 시점에 해야하는 일 - effect         
         if (mp_isCollide)
         {
             effect.Draw(memdc1, mp_collide_x, mp_collide_y, 65, 65, 0, 0, 65, 65);
@@ -596,6 +607,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             My_heart.Draw(memdc1, 30 + 45 * i + p_x - 200, 20, 45, 45, 0, 0, 45, 45);
         }
 
+        // 10. 최종 Portal 그리기
+        portal.Draw(memdc1, 10300, 600, 52, 52, 0, 0, 52, 52);
+
+        if (is_game_fail)
+        {
+            FailGame.Draw(memdc1, p_x - 200, 0, 1000, 1000, 0, 0, 1000, 1000);
+        }
+
+        if (is_game_success)
+        {
+            SuccessGame.Draw(memdc1, p_x - 200, 0, 1000, 1000, 0, 0, 1000, 1000);
+        }
 
         // --- RECT 테스트 ---
 
@@ -665,8 +688,12 @@ void LoadImage()
     garo.Load(L"garo.png");
     sero.Load(L"sero.png");
 
-    heart.Load(L"heart.png");
     My_heart.Load(L"heart.png");
+
+    portal.Load(L"portal.png");
+
+    FailGame.Load(L"FailGame.png");
+    SuccessGame.Load(L"SuccessGame.png");
 }
 
 bool CollisionHelper(RECT r1, RECT r2)
