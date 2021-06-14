@@ -138,6 +138,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     static bool isRanding = false;
     static bool isJump = false;
+    static int jumpCount = 0;
+
     switch (uMsg) {
 
     case WM_CREATE:
@@ -266,7 +268,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
                         }
                         //아래 충돌
-                        if (w_rect[i].top > p_rect.top)
+                        else if (w_rect[i].top > p_rect.top)
                         {
 
                             //velY = -100;
@@ -280,22 +282,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                                 p_y -= 1;
                             }
                             isRanding = true;
-
+                            jumpCount = 0;
                             //p_locate = PLAYER::GROUND;
                         }
                         // 왼쪽 충돌
 
-                        if (w_rect[i].right > p_rect.right && !isRanding)
+                        else if (w_rect[i].right > p_rect.right )
                         {
                             p_x -= 10;
+                            
                         }
                         // 오른쪽 충돌
-                        if (w_rect[i].left < p_rect.left && !isRanding)
+                        else if (w_rect[i].left < p_rect.left )
                         {
                             p_x += 10;
 
                         }
-
 
                     }
                 }
@@ -483,12 +485,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         switch (wParam)
         {
         case VK_SPACE:
-            //accY = PLAYER_GRAVITY;
-            isJump = true;
-            p_locate = PLAYER::FALLING;
-            isRanding = false;
-            velY = -10.5; 
-            break;
+            if (jumpCount < 2) {
+                isJump = true;
+                p_locate = PLAYER::FALLING;
+                isRanding = false;
+                velY = -10.5;
+                jumpCount++;
+                break;
+            }
 
         }
         break;
