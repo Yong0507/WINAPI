@@ -455,6 +455,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             is_game_success = false;
             break;
 
+            // 시연을 위한 치트키
+        case 'h':
+            heart_count++;
+            break;
+        case 'H':
+            p_x = 9900;
+            p_y = 550;
+            break;
+
         case 'q':
         case 'Q':
             exit(1);
